@@ -100,7 +100,9 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
     U = _time_average(disp.trace, 2, t_warm, t_stop) / cfg.c
     L_io = _time_average(io.trace, 1, t_warm, t_stop) if io else 0.0
 
-    total_accounted = len(sink.records) + len(sink.rejected) + disp.n + (io.n if io else 0)
+    cpu_pending = int(disp.trace[-1][1]) if disp.trace else 0
+    io_pending = io.n if io else 0
+    total_accounted = len(sink.records) + len(sink.rejected) + cpu_pending + io_pending
     conservation_ok = (total_accounted == src.sent)
 
     return SimMetrics(
