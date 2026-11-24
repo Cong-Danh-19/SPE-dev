@@ -99,10 +99,12 @@ class SharedDispatcherLP(BaseSimLP):
 
 class PartitionedDispatcherLP(BaseSimLP):
     """Hàng chờ riêng từng kernel thread N x M/M/1/K (dùng cho Bun)."""
-    def __init__(self, lp_id: int, seed: int = 1, c: int = 8, K: int = 800, **kw):
+    def __init__(self, lp_id: int, seed: int = 1, c: int = 8, K: int = 800,
+                 routing: str = "random", **kw):
         super().__init__(lp_id, seed)
         self.c = c
         self.k_per_worker = max(1, K // c)
+        self.routing = routing
         self.busy = [False] * c
         self.queues = [deque() for _ in range(c)]
         self.counts = [0] * c
@@ -115,8 +117,11 @@ class PartitionedDispatcherLP(BaseSimLP):
     def handle_event(self, e: Event):
         t = e.timestamp
         if e.event_type == "REQ":
-            w = self.rr_idx
-            self.rr_idx = (self.rr_idx + 1) % self.c
+            if self.routing == "rr":
+                w = self.rr_idx
+                self.rr_idx = (self.rr_idx + 1) % self.c
+            else:
+                w = self.rng.randrange(self.c)
             if self.counts[w] >= self.k_per_worker:
                 self._send(t, SINK_ID, "REJECT", e.payload)
             else:

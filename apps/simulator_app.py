@@ -61,7 +61,7 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
                   n_req=cfg.n_req, warm_reqs=warm_reqs, closed_C=cfg.closed_C)
 
     disp_model = "PartitionedDispatcherLP" if cfg.arch == "partitioned" else "SharedDispatcherLP"
-    sim.create_lp(DISP_ID, disp_model, seed=cfg.seed, c=cfg.c, K=cfg.K)
+    sim.create_lp(DISP_ID, disp_model, seed=cfg.seed, c=cfg.c, K=cfg.K, routing=cfg.routing)
 
     if cfg.D > 0:
         sim.create_lp(IO_ID, "IoLP", seed=cfg.seed, D=cfg.D,

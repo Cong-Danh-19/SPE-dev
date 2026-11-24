@@ -31,7 +31,9 @@ class SimConfig:
     heavy_mult: float = 20.0            # Hệ số nhân thời gian CPU của tác vụ nặng (S10)
     dispatcher_type: str = "sequential" # "sequential" | "distributed_sequential"
     seed: int = 1                       # Hạt giống ngẫu nhiên
-
+    arch: str = "shared"                # "shared" (Event loop / Loom) | "partitioned" (Bun)[cite: 20]
+    routing: str = "random"             # "random" (Poisson split) | "rr" (Round-Robin)
+    kappa: float = 1.0                  # Hệ số chi phí CPU của kernel thread (Bun)[cite: 20]
 
 @dataclass
 class SimMetrics:
