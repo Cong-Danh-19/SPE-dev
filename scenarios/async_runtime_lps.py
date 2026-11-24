@@ -26,12 +26,14 @@ class BaseSimLP(BkSysCoLogicalProcess):
 
 class SourceLP(BaseSimLP):
     def __init__(self, lp_id: int, seed: int = 1, gamma: float = 1.0,
-                 n_req: int = 30_000, warm_reqs: int = 3000, closed_C: int = 0, **kw):
+                 n_req: int = 30_000, warm_reqs: int = 3000, closed_C: int = 0,
+                 track_timeouts: bool = False, **kw):
         super().__init__(lp_id, seed)
         self.gamma = gamma
         self.n_req = n_req
         self.warm_reqs = warm_reqs
         self.closed_C = closed_C
+        self.track_timeouts = track_timeouts
         self.sent = 0
         self.t_warm = 0.0
         self.t_last = 0.0
@@ -52,9 +54,12 @@ class SourceLP(BaseSimLP):
             if self.sent == self.warm_reqs + 1:
                 self.t_warm = t
             self.t_last = t
-            if self.closed_C == 0 and e.event_type == "ARRIVAL":
+            if self.closed_C == 0 and e.event_type == "ARRIVAL" and self.sent < self.n_req:
                 self._send(t, self.lp_id, "ARRIVAL", {}, at=t + self.rng.expovariate(self.gamma))
-            self._send(t, DISP_ID, "REQ", {"rid": self.sent, "t_arr": t})
+            payload = {"rid": self.sent, "t_arr": t}
+            if self.track_timeouts:
+                self._send(t, SINK_ID, "REQUEST_STARTED", payload)
+            self._send(t, DISP_ID, "REQ", payload)
 
 
 class SharedDispatcherLP(BaseSimLP):
@@ -209,17 +214,32 @@ class IoLP(BaseSimLP):
 
 class SinkLP(BaseSimLP):
     def __init__(self, lp_id: int, seed: int = 1, closed: bool = False,
-                 t_err: float = 1e-2, think_time: float = 0.0, **kw):
+                 t_err: float = 1e-2, think_time: float = 0.0,
+                 request_timeout: Optional[float] = None, **kw):
         super().__init__(lp_id, seed)
         self.closed = closed
         self.t_err = t_err
         self.think_time = think_time
+        self.request_timeout = request_timeout
+        self.pending = set()
         self.records = []
         self.rejected = []
+        self.timed_out = []
 
     def handle_event(self, e: Event):
         t = e.timestamp
         p = e.payload
+        if self.request_timeout is not None:
+            rid = p["rid"]
+            if e.event_type == "REQUEST_STARTED":
+                self.pending.add(rid)
+                self._send(t, self.lp_id, "TIMEOUT", p, at=t + self.request_timeout)
+                return
+            if e.event_type not in ("DONE", "REJECT", "TIMEOUT") or rid not in self.pending:
+                return
+            # The first terminal event wins. CPU and I/O release resources normally.
+            self.pending.remove(rid)
+
         if e.event_type == "DONE":
             t_arr = p["t_arr"]
             t_start = p.get("t_start", t_arr)
@@ -227,7 +247,8 @@ class SinkLP(BaseSimLP):
             self.records.append((t_arr, t - t_arr, t_cpu_end - t_arr, t_start - t_arr))
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.think_time)
-        elif e.event_type == "REJECT":
-            self.rejected.append(p["t_arr"])
+        elif e.event_type in ("REJECT", "TIMEOUT"):
+            outcomes = self.rejected if e.event_type == "REJECT" else self.timed_out
+            outcomes.append(p["t_arr"])
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.t_err)

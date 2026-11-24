@@ -1,4 +1,5 @@
 import concurrent.futures
+from math import inf, isfinite
 from typing import Dict, List
 import numpy as np
 from bkitevsim.core import Simulation, SimulationOptions
@@ -39,6 +40,9 @@ def _time_average(trace: list, col: int, t_warm: float, t_stop: float) -> float:
 
 def run_simulation(cfg: SimConfig) -> SimMetrics:
     """Chạy một lượt mô phỏng DES hoàn chỉnh và trả về các metric sau warm-up."""
+    if cfg.request_timeout is not None and (not isfinite(cfg.request_timeout) or cfg.request_timeout <= 0):
+        raise ValueError("request_timeout must be a finite positive duration")
+
     eff_s = cfg.s * (cfg.kappa if cfg.arch == "partitioned" else 1.0)
 
     warm_reqs = int(cfg.n_req * cfg.warm_ratio)
@@ -47,18 +51,21 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
         warm_reqs = max(warm_reqs, min(fill_reqs, int(0.4 * cfg.n_req)))
 
     if cfg.closed_C > 0:
-        t_end = 3.5 * cfg.n_req * max((eff_s + cfg.D) / cfg.closed_C, eff_s / cfg.c) + 50.0 * (eff_s + cfg.D)
+        estimated_span = 3.5 * cfg.n_req * max((eff_s + cfg.D) / cfg.closed_C, eff_s / cfg.c)
     else:
-        t_end = 3.5 * (cfg.n_req / cfg.gamma) + 50.0 * (eff_s + cfg.D)
+        estimated_span = 3.5 * (cfg.n_req / cfg.gamma)
+    estimated_span += 50.0 * (eff_s + cfg.D)
 
+    # The source limits the request count. Let pending events drain at any timestamp.
     opts = SimulationOptions(
-        end_time=t_end,
+        end_time=inf,
         dispatcher=cfg.dispatcher_type,
-        bucket_width=max(t_end / 900.0, 1e-3),
+        bucket_width=max(estimated_span / 900.0, 1e-3),
     )
     sim = Simulation(opts, models=MODELS)
     sim.create_lp(SRC_ID, "SourceLP", seed=cfg.seed, gamma=cfg.gamma,
-                  n_req=cfg.n_req, warm_reqs=warm_reqs, closed_C=cfg.closed_C)
+                  n_req=cfg.n_req, warm_reqs=warm_reqs, closed_C=cfg.closed_C,
+                  track_timeouts=cfg.request_timeout is not None)
 
     disp_model = "PartitionedDispatcherLP" if cfg.arch == "partitioned" else "SharedDispatcherLP"
     sim.create_lp(DISP_ID, disp_model, seed=cfg.seed, c=cfg.c, K=cfg.K, routing=cfg.routing)
@@ -68,7 +75,7 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
                       dist_io=cfg.dist_io, backend_limit=cfg.backend_limit)
 
     sim.create_lp(SINK_ID, "SinkLP", seed=cfg.seed, closed=(cfg.closed_C > 0),
-                  t_err=cfg.t_err, think_time=cfg.think_time)
+                  t_err=cfg.t_err, think_time=cfg.think_time, request_timeout=cfg.request_timeout)
 
     for k in range(cfg.c):
         sim.create_lp(WORKER_BASE_ID + k, "WorkerLP", seed=cfg.seed, s=eff_s, D=cfg.D,
@@ -86,10 +93,11 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
 
     obs_done = [r for r in sink.records if r[0] >= t_warm]
     obs_rej = [ta for ta in sink.rejected if ta >= t_warm]
+    n_timed_out = sum(ta >= t_warm for ta in sink.timed_out)
 
     n_done = len(obs_done)
     n_rej = len(obs_rej)
-    n_obs = n_done + n_rej
+    n_obs = n_done + n_rej + n_timed_out
     has_done = n_done > 0
 
     R_arr = np.array([r[1] for r in obs_done]) if has_done else np.array([])
@@ -102,8 +110,8 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
 
     cpu_pending = int(disp.trace[-1][1]) if disp.trace else 0
     io_pending = io.n if io else 0
-    total_accounted = len(sink.records) + len(sink.rejected) + cpu_pending + io_pending
-    conservation_ok = (total_accounted == src.sent)
+    total_accounted = len(sink.records) + len(sink.rejected) + len(sink.timed_out)
+    conservation_ok = total_accounted == src.sent == cfg.n_req and cpu_pending == io_pending == 0
 
     return SimMetrics(
         Pblock=(n_rej / n_obs) if n_obs > 0 else np.nan,
@@ -124,6 +132,7 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
         n_arrived=n_obs,
         T_obs=T_obs,
         conservation_ok=conservation_ok,
+        n_timed_out=n_timed_out,
     )
 
 

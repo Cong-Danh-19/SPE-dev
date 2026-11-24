@@ -35,7 +35,7 @@ class LadderQueue(Generic[T]):
        
     Attributes:
         bucket_width: Time range covered by each bucket.
-        num_buckets: Number of buckets in the ladder (circular buffer).
+        num_buckets: Legacy bucket count retained for API compatibility.
         _buckets: A dictionary mapping bucket index to list of events
         _bucket_boundaries: A sorted list of bucket boundaries (timestamps) bucket min timestamps
         _min_bucket_idx: Current minimum bucket index for fast access
@@ -48,7 +48,7 @@ class LadderQueue(Generic[T]):
         
         Args:
             bucket_width: Time range covered by each bucket. Defaults to 1.0.
-            num_buckets: Number of buckets in the ladder (circular buffer). Defaults to 1024.
+            num_buckets: Legacy bucket count. Defaults to 1024.
         """
         self.bucket_width = bucket_width
         self.num_buckets = num_buckets
@@ -69,7 +69,7 @@ class LadderQueue(Generic[T]):
         Returns:
             The bucket index for the given timestamp.
         """
-        return int(timestamp / self.bucket_width) % self.num_buckets
+        return int(timestamp / self.bucket_width)
     
     def _get_bucket_min_time(self, bucket_idx: int) -> float:
         """Get the minimum timestamp for a bucket index.

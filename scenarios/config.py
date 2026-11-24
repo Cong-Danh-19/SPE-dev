@@ -32,6 +32,7 @@ class SimConfig:
     dispatcher_type: str = "sequential" # "sequential" | "distributed_sequential"
     seed: int = 1                       # Hạt giống ngẫu nhiên               # "shared" (Event loop / Loom) | "partitioned" (Bun)[cite: 20]
     routing: str = "random"             # "random" (Poisson split) | "rr" (Round-Robin)
+    request_timeout: Optional[float] = None  # Deadline end-to-end tính từ lúc đến (giây mô phỏng)
 
 @dataclass
 class SimMetrics:
@@ -54,3 +55,4 @@ class SimMetrics:
     n_arrived: int
     T_obs: float
     conservation_ok: bool
+    n_timed_out: int = 0
