@@ -59,7 +59,8 @@ def test_mmc():
 
 def test_mmck():
     lam, s, c, K = 850.0, 0.01, 8, 24
-    cfg = SimConfig(gamma=lam, c=c, K=K, s=s, D=0.0, n_req=40_000)
+    # Use longer replications to reduce sampling error in the blocking estimate.
+    cfg = SimConfig(gamma=lam, c=c, K=K, s=s, D=0.0, n_req=100_000)
     res = run_replications(cfg, n_seeds=10)
     th = ana.mmck(lam, 1.0 / s, c, K)
     assert rel_err(res["Pblock"]["mean"], th["Pblock"]) < 0.05
@@ -67,9 +68,10 @@ def test_mmck():
     assert rel_err(res["L_cpu"]["mean"], th["L"]) < 0.05
 
 
-@pytest.mark.parametrize("arch,kappa", [("shared", 1.0), ("partitioned", 1.25)])
-def test_tandem_loom_and_bun(arch, kappa):
-    lam, c, K, s, D = 5000.0, 8, 80, 1e-3, 50e-3
+@pytest.mark.parametrize("arch,kappa,K", [("shared", 1.0, 10), ("partitioned", 1.25, 80)])
+def test_tandem_loom_and_bun(arch, kappa, K):
+    # Each capacity gives enough blocked arrivals to test relative error.
+    lam, c, s, D = 5000.0, 8, 1e-3, 50e-3
     cfg = SimConfig(gamma=lam, c=c, K=K, s=s, D=D, arch=arch, kappa=kappa, n_req=40_000)
     res = run_replications(cfg, n_seeds=10)
     th = ana.tandem_analytical(lam, c, K, s, D, arch=arch, kappa=kappa)
