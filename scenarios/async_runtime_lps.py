@@ -111,6 +111,11 @@ class PartitionedDispatcherLP(BaseSimLP):
         self.rr_idx = 0
         self.trace = [(0.0, 0, 0)]
 
+    @property
+    def n(self) -> int:
+        """Tổng số request đang xử lý + đang chờ trên tất cả các hàng đợi con."""
+        return sum(self.counts)
+    
     def _log(self, t: float):
         self.trace.append((t, sum(self.counts), sum(1 for b in self.busy if b)))
 

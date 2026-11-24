@@ -1,1 +1,1 @@
-"""Package kiểm thử Verification tự động."""
+"""Package kiểm thử Verification cơ bản."""
