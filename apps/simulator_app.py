@@ -92,17 +92,23 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
     T_obs = t_stop - t_warm
 
     obs_done = [r for r in sink.records if r[0] >= t_warm]
-    obs_rej = [ta for ta in sink.rejected if ta >= t_warm]
+    n_rej = sum(ta >= t_warm for ta, _ in sink.rejected)
     n_timed_out = sum(ta >= t_warm for ta in sink.timed_out)
 
     n_done = len(obs_done)
-    n_rej = len(obs_rej)
     n_obs = n_done + n_rej + n_timed_out
-    has_done = n_done > 0
 
-    R_arr = np.array([r[1] for r in obs_done]) if has_done else np.array([])
-    Wcpu_arr = np.array([r[2] for r in obs_done]) if has_done else np.array([])
-    Wq_arr = np.array([r[3] for r in obs_done]) if has_done else np.array([])
+    measured_done = obs_done
+    measured_rejections = n_rej
+    if cfg.closed_C > 0:
+        # Counts for rates use event timestamps. Cohort counts above follow arrivals.
+        measured_done = [r for r in sink.records if t_warm <= r[4] <= t_stop]
+        measured_rejections = sum(t_warm <= t <= t_stop for _, t in sink.rejected)
+
+    has_done = bool(measured_done)
+    R_arr = np.array([r[1] for r in measured_done])
+    Wcpu_arr = np.array([r[2] for r in measured_done])
+    Wq_arr = np.array([r[3] for r in measured_done])
 
     L_cpu = _time_average(disp.trace, 1, t_warm, t_stop)
     U = _time_average(disp.trace, 2, t_warm, t_stop) / cfg.c
@@ -115,7 +121,8 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
 
     return SimMetrics(
         Pblock=(n_rej / n_obs) if n_obs > 0 else np.nan,
-        X=(n_done / T_obs) if T_obs > 0 else np.nan,
+        X=(len(measured_done) / T_obs) if T_obs > 0 else np.nan,
+        X_err=(measured_rejections / T_obs) if T_obs > 0 else 0.0,
         R=float(R_arr.mean()) if has_done else np.nan,
         Wq=float(Wq_arr.mean()) if has_done else np.nan,
         W_cpu=float(Wcpu_arr.mean()) if has_done else np.nan,

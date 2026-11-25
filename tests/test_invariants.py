@@ -15,16 +15,15 @@ def test_closed_loop_littles_law():
     C = 1500
     t_err = 0.01
     think_time = 0.005
+    # Allow the finite observation window to reach steady-state cycle rates.
     cfg = SimConfig(
         gamma=0.0, c=8, K=200, s=1e-3, D=50e-3,
-        closed_C=C, t_err=t_err, think_time=think_time, n_req=50_000, seed=7,
+        closed_C=C, t_err=t_err, think_time=think_time, n_req=100_000, seed=7,
     )
     m = run_simulation(cfg)
     assert m.conservation_ok is True
     assert m.T_obs > 0
-    X_ok = m.X
-    X_err = m.n_rejected / m.T_obs
-    estimated_C = X_ok * (m.R + think_time) + X_err * t_err
+    estimated_C = m.X * (m.R + think_time) + m.X_err * t_err
     assert abs(estimated_C - C) / C < 0.03
 
 

@@ -56,3 +56,4 @@ class SimMetrics:
     T_obs: float
     conservation_ok: bool
     n_timed_out: int = 0
+    X_err: float = 0.0                  # Tốc độ request bị từ chối (req/s)

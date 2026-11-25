@@ -36,10 +36,7 @@ def evaluate_config(exp_id: str, scenario: str, cfg: SimConfig, n_seeds: int = 1
     }
 
     for k in METRICS:
-        if k == "X_err":
-            vals = [r.n_rejected / r.T_obs if r.T_obs > 0 else 0.0 for r in runs]
-        else:
-            vals = [getattr(r, k) for r in runs]
+        vals = [getattr(r, k) for r in runs]
         stat = ana.summarize_replications(vals)
         row[f"{k}_mean"] = stat["mean"]
         row[f"{k}_std"] = stat["std"]

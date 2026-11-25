@@ -244,11 +244,13 @@ class SinkLP(BaseSimLP):
             t_arr = p["t_arr"]
             t_start = p.get("t_start", t_arr)
             t_cpu_end = p.get("t_cpu_end", t)
-            self.records.append((t_arr, t - t_arr, t_cpu_end - t_arr, t_start - t_arr))
+            self.records.append((t_arr, t - t_arr, t_cpu_end - t_arr, t_start - t_arr, t))
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.think_time)
         elif e.event_type in ("REJECT", "TIMEOUT"):
-            outcomes = self.rejected if e.event_type == "REJECT" else self.timed_out
-            outcomes.append(p["t_arr"])
+            if e.event_type == "REJECT":
+                self.rejected.append((p["t_arr"], t))
+            else:
+                self.timed_out.append(p["t_arr"])
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.t_err)
