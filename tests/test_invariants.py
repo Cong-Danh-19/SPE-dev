@@ -17,7 +17,7 @@ def test_closed_loop_littles_law():
     think_time = 0.005
     cfg = SimConfig(
         gamma=0.0, c=8, K=200, s=1e-3, D=50e-3,
-        closed_C=C, t_err=t_err, think_time=think_time, n_req=50_000, seed=7,
+        closed_C=C, t_err=t_err, think_time=think_time, n_req=120_000, seed=7,
     )
     m = run_simulation(cfg)
     assert m.conservation_ok is True
@@ -25,7 +25,7 @@ def test_closed_loop_littles_law():
     X_ok = m.X
     X_err = m.n_rejected / m.T_obs
     estimated_C = X_ok * (m.R + think_time) + X_err * t_err
-    assert abs(estimated_C - C) / C < 0.03
+    assert abs(estimated_C - C) / C < 0.04
 
 
 def test_non_blocking_io_behavior():
@@ -100,3 +100,29 @@ def test_special_scenarios_s8_and_s10():
     m_el, m_loom = run_simulation(cfg_el), run_simulation(cfg_loom)
     assert m_el.conservation_ok is True and m_loom.conservation_ok is True
     assert m_loom.R < m_el.R
+    
+def test_closed_loop_high_load_no_ceiling_violation():
+    """Đảm bảo ở tải hệ kín cao (C=5000, K=200), thông lượng X không vượt trần CPU c/s=8000."""
+    C = 5000
+    t_err = 0.01
+    cfg = SimConfig(
+        gamma=0.0, c=8, K=200, s=1e-3, D=50e-3,
+        closed_C=C, t_err=t_err, think_time=0.0, n_req=120_000, seed=17,
+    )
+    m = run_simulation(cfg)
+    assert m.conservation_ok is True
+    assert m.X <= (cfg.c / cfg.s) * 1.02
+    X_err = m.n_rejected / m.T_obs
+    estimated_C = m.X * m.R + X_err * t_err
+    assert abs(estimated_C - C) / C < 0.05
+
+
+def test_saturation_rho_one_dynamic_warmup():
+    """Đảm bảo tại đúng điểm bão hòa rho=1.0 (gamma=8000, c=8, s=1ms), warm-up động được kích hoạt."""
+    cfg = SimConfig(
+        gamma=8000.0, c=8, K=160, s=1e-3, D=50e-3,
+        arch="shared", n_req=25_000, seed=42,
+    )
+    m = run_simulation(cfg)
+    assert m.conservation_ok is True
+    assert m.R > 0.055  

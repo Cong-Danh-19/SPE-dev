@@ -18,6 +18,7 @@ class SimConfig:
     s: float = 1e-3                     # Thời gian phục vụ CPU trung bình (giây)
     D: float = 50e-3                    # Độ trễ I/O trung bình (giây), 0 = bỏ qua trạm I/O
     arch: str = "shared"                # "shared" (Event loop / Loom) | "partitioned" (Bun)
+    routing: str = "random"             # "random" (Poisson split) | "rr" (Round-Robin)
     kappa: float = 1.0                  # Hệ số chi phí CPU của kernel thread (Bun)
     dist_cpu: str = "exp"               # "exp" (mũ) | "det" (xác định)
     dist_io: str = "exp"                # "exp" (mũ) | "det" (xác định)
@@ -30,8 +31,8 @@ class SimConfig:
     heavy_prob: float = 0.0             # Xác suất gặp tác vụ CPU nặng (S10)
     heavy_mult: float = 20.0            # Hệ số nhân thời gian CPU của tác vụ nặng (S10)
     dispatcher_type: str = "sequential" # "sequential" | "distributed_sequential"
-    seed: int = 1                       # Hạt giống ngẫu nhiên               # "shared" (Event loop / Loom) | "partitioned" (Bun)[cite: 20]
-    routing: str = "random"             # "random" (Poisson split) | "rr" (Round-Robin)
+    seed: int = 1                       # Hạt giống ngẫu nhiên
+
 
 @dataclass
 class SimMetrics:

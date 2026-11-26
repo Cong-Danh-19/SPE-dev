@@ -40,11 +40,13 @@ def _time_average(trace: list, col: int, t_warm: float, t_stop: float) -> float:
 def run_simulation(cfg: SimConfig) -> SimMetrics:
     """Chạy một lượt mô phỏng DES hoàn chỉnh và trả về các metric sau warm-up."""
     eff_s = cfg.s * (cfg.kappa if cfg.arch == "partitioned" else 1.0)
+    cap_rate = cfg.c / eff_s
 
     warm_reqs = int(cfg.n_req * cfg.warm_ratio)
-    if cfg.closed_C == 0 and cfg.K < 10**6 and cfg.gamma > (cfg.c / eff_s):
-        fill_reqs = int(2.5 * cfg.K * cfg.gamma / max(cfg.gamma - cfg.c / eff_s, 1.0))
-        warm_reqs = max(warm_reqs, min(fill_reqs, int(0.4 * cfg.n_req)))
+    if cfg.closed_C == 0 and cfg.K < 10**6 and cfg.gamma >= 0.85 * cap_rate:
+        excess = max(cfg.gamma - cap_rate, 0.05 * cap_rate)
+        fill_reqs = int(3.0 * cfg.K * cfg.gamma / excess)
+        warm_reqs = max(warm_reqs, min(fill_reqs, int(0.5 * cfg.n_req)))
 
     if cfg.closed_C > 0:
         t_end = 3.5 * cfg.n_req * max((eff_s + cfg.D) / cfg.closed_C, eff_s / cfg.c) + 50.0 * (eff_s + cfg.D)
@@ -84,8 +86,9 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
     t_stop = src.t_last
     T_obs = t_stop - t_warm
 
-    obs_done = [r for r in sink.records if r[0] >= t_warm]
-    obs_rej = [ta for ta in sink.rejected if ta >= t_warm]
+    # Lọc các request hoàn thành theo thời điểm rời hệ thống (t_arr + R) nằm trong [t_warm, t_stop]
+    obs_done = [r for r in sink.records if t_warm <= (r[0] + r[1]) <= t_stop]
+    obs_rej = [ta for ta in sink.rejected if t_warm <= ta <= t_stop]
 
     n_done = len(obs_done)
     n_rej = len(obs_rej)
