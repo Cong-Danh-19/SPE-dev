@@ -1,31 +1,72 @@
-# hk261_spe_BKsyspeEvsim — Đánh giá Hiệu năng Cơ chế Bất đồng bộ bằng Mô phỏng DES
+# SPE-dev-demo
 
-Dự án mô phỏng hệ thống sự kiện rời rạc đánh giá 3 kiến trúc xử lý bất đồng bộ:
-- **Event Loop** ($M/M/1/K$)
-- **Bun Multi-Kernel Thread** ($N \times M/M/1/K$)
-- **Spring Loom Virtual Thread** ($M/M/c/K$)
+Mã mô phỏng DES so sánh Event Loop với một worker, Spring Loom với một hàng CPU chung và Bun với nhiều hàng CPU riêng. Các mô hình nối tiếp trạm I/O. Các cấu hình thực nghiệm và kết quả được trình bày trong [mô tả thí nghiệm](../A%20description%20of%20the%20experiments/Experiments.pdf) và [báo cáo kiểm chứng và đánh giá](../Validation%20and%20evaluation/Validation-and-evaluation.pdf).
 
-nối tiếp trạm I/O ($M/M/\infty$).
+## Cây thư mục
 
-## 1. Cài đặt môi trường
-```bash
-python -m venv .venv
-source .venv/Scripts/activate   # Windows (Git Bash)
-# source .venv/bin/activate       # Linux / macOS
-
-pip install -r requirements.txt
-# Copy thư mục lõi bkitevsim từ template đề tài vào ./bkitevsim/
+```text
+SPE-dev-demo/
+├── .venv/                          # Môi trường Python tạo trên máy khi cài đặt
+├── bkitevsim/                      # Lõi mô phỏng, bộ điều phối và hàng đợi sự kiện
+├── design/
+│   ├── design.ipynb
+│   └── Spe-Ass-Spec-YY9B.pdf
+├── scenarios/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── async_runtime_lps.py
+│   └── analytical.py
+├── apps/
+│   ├── __init__.py
+│   ├── synchronous_sequential_app.py
+│   ├── distributed_sequential_app.py
+│   ├── simulator_app.py
+│   ├── benchmark_experiments_app.py
+│   └── plotting_app.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_models.py
+│   └── test_invariants.py
+├── results/
+│   ├── .gitkeep
+│   ├── verification_summary.csv
+│   ├── e1_throughput_curves.csv
+│   ├── e2_capacity_delay.csv
+│   ├── e3_loom_vs_bun_sensitivity.csv
+│   ├── e4_closed_loop.csv
+│   ├── e5_special_scenarios.csv
+│   ├── raw_seed_runs.csv
+│   └── figures/                    # Năm biểu đồ, mỗi hình có bản PNG và PDF
+│       └── .gitkeep
+├── docs/
+│   ├── architecture.md
+│   ├── user_manual.md
+│   └── diagrams/
+│       ├── .gitkeep
+│       ├── architecture.svg
+│       └── classes.svg
+├── exam/
+│   └── .gitkeep
+├── Makefile
+├── requirements.txt
+├── LICENSE
+└── README.md
 ```
 
-## 2. Phân công thư mục cho 3 thành viên
-- **Thành viên 1 (`feat/tv1-core-engine`):** `scenarios/config.py`, `scenarios/async_runtime_lps.py`, `apps/simulator_app.py`
-- **Thành viên 2 (`feat/tv2-analytical-experiments`):** `scenarios/analytical.py`, `apps/benchmark_experiments_app.py`, `tests/test_models.py`, `tests/test_invariants.py`
-- **Thành viên 3 (`feat/tv3-plotting-docs`):** `apps/plotting_app.py`, `docs/architecture.md`, `docs/user_manual.md`, `docs/diagrams/`
+Thư mục `design/` chứa [notebook thiết kế](design/design.ipynb) và [bản thiết kế Phase 1](design/Spe-Ass-Spec-YY9B.pdf). Sáu bảng tổng hợp ở mốc `ff8df35` gồm một bảng kiểm chứng và năm bảng E1–E5. [Dữ liệu từng seed](results/raw_seed_runs.csv) nằm cùng thư mục với các bảng này.
 
-## 3. Quy trình chạy chuẩn
-```bash
-make test          # Chạy kiểm thử Verification (sai số giải tích < 5% & bất biến hệ thống)
-make run-exp       # Chạy thực nghiệm E1-E5 và xuất CSV ra results/
-make plot          # Vẽ biểu đồ CI95 ra results/figures/
-make pack          # Đóng gói tệp nộp bài Spe-Ass-final-<GroupName>.zip
+## Chạy trên dữ liệu bàn giao
+
+Từ thư mục chứa tệp này, cài môi trường theo [hướng dẫn sử dụng](docs/user_manual.md). Các lệnh sau chạy 19 kiểm thử mô hình và bất biến, vẽ lại hình và đóng gói bằng GNU Make.
+
+```sh
+python -X utf8 -m pytest -v tests
+python -X utf8 -m apps.plotting_app
+make pack
 ```
+
+Dùng `make pack` để đóng gói mã nguồn, kết quả, năm PDF và [bản nộp Phase 1](../The%20Phase%201%20submission/Spe-Ass-Spec-YY9B.pdf). `make run-exp` và `make all-pipeline` chạy lại thí nghiệm và ghi lại CSV. Có thể dùng bản sao của dự án khi cần so sánh một lần chạy mới với số liệu bàn giao.
+
+Các tài liệu Phase 2 mô tả nguồn tải, cửa sổ đo và các cấu hình E1–E5 trong CSV bàn giao. [Workload Phase 2](../A%20description%20of%20the%20workload/Workload.pdf) · [Thí nghiệm Phase 2](../A%20description%20of%20the%20experiments/Experiments.pdf)
+
+[Cấu trúc bài nộp](../README.md) · [Kiểm chứng và đánh giá](../Validation%20and%20evaluation/Validation-and-evaluation.pdf) · [Kiến trúc và bảy câu hỏi nghiên cứu](docs/architecture.md)

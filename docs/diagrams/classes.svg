@@ -1,0 +1,36 @@
+<svg font-family="DejaVu Sans, Arial, sans-serif" fill="#173449" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1030 700" width="1030" height="700" role="img" aria-labelledby="title desc">
+  <title id="title">Biểu đồ lớp của sáu Logical Process</title>
+  <desc id="desc">Sáu lớp cụ thể SourceLP, SharedDispatcherLP, PartitionedDispatcherLP, WorkerLP, IoLP và SinkLP cùng kế thừa BaseSimLP. BaseSimLP kế thừa BkSysCoLogicalProcess của framework. Tam giác rỗng chỉ lớp cha.</desc>
+  <defs>
+  </defs>
+  <rect width="1030" height="700" fill="white"/>
+  <text x="30" y="37" font-size="26px" font-weight="700">Các lớp Logical Process</text>
+  <text x="30" y="64" font-size="15px" fill="#465966">Tam giác rỗng chỉ lớp cha. Mỗi ô liệt kê các thuộc tính và phương thức liên quan đến mô phỏng.</text>
+  <rect x="311" y="86" width="408" height="48" fill="#e4f2ee" stroke="#487569" stroke-width="1.5"/>
+  <text x="515" y="116" font-size="18px" font-weight="700" text-anchor="middle">BkSysCoLogicalProcess</text>
+  <path d="M515 161 V147" fill="none" stroke="#597986" stroke-width="1.6"/><path d="M515 135 l-7 12 h14 Z" fill="white" stroke="#597986" stroke-width="1.6"/>
+  <rect x="311" y="161" width="408" height="91" fill="#e4f2ee" stroke="#487569" stroke-width="1.5"/><path d="M311 197 H719" fill="none" stroke="#597986" stroke-width="1.6"/>
+  <text x="515" y="185" font-size="18px" font-weight="700" text-anchor="middle">BaseSimLP</text>
+  <text x="330" y="218" font-family="'DejaVu Sans Mono',Consolas,monospace" font-size="14px">rng: random.Random</text><text x="330" y="239" font-family="'DejaVu Sans Mono',Consolas,monospace" font-size="14px">_send(now, dst, etype, payload, at)</text>
+  <path d="M515 265 V602 M445 336 H585 M445 469 H585 M445 602 H585" fill="none" stroke="#597986" stroke-width="1.6"/><path d="M515 253 l-7 12 h14 Z" fill="white" stroke="#597986" stroke-width="1.6"/>
+  <g fill="#f4f8fa" stroke="#608493" stroke-width="1.5">
+    <rect x="30" y="285" width="415" height="104"/><rect x="585" y="285" width="415" height="104"/>
+    <rect x="30" y="418" width="415" height="104"/><rect x="585" y="418" width="415" height="104"/>
+    <rect x="30" y="551" width="415" height="104"/><rect x="585" y="551" width="415" height="104"/>
+  </g>
+  <g fill="none" stroke="#597986" stroke-width="1.6"><path d="M30 319 H445 M585 319 H1000 M30 452 H445 M585 452 H1000 M30 585 H445 M585 585 H1000"/></g>
+  <g font-size="18px" font-weight="700" text-anchor="middle">
+    <text x="238" y="309">SourceLP</text><text x="792" y="309">WorkerLP</text>
+    <text x="238" y="442">SharedDispatcherLP</text><text x="792" y="442">PartitionedDispatcherLP</text>
+    <text x="238" y="575">IoLP</text><text x="792" y="575">SinkLP</text>
+  </g>
+  <g font-family="'DejaVu Sans Mono',Consolas,monospace" font-size="14px">
+    <text x="48" y="342">gamma, closed_C, sent, t_warm, t_last</text><text x="48" y="370">coroutine_run(), handle_event(e)</text>
+    <text x="603" y="342">s, D, dist_cpu, heavy_prob, heavy_mult</text><text x="603" y="370">_sample_service(), handle_event(e)</text>
+    <text x="48" y="475">c, K, Q: deque, idle, n</text><text x="48" y="503">_log(t), handle_event(e)</text>
+    <text x="603" y="475">queues, counts, busy, k_per_worker</text><text x="603" y="503">_log(t), handle_event(e)</text>
+    <text x="48" y="608">D, dist_io, backend_limit, n</text><text x="48" y="636">handle_event(e)</text>
+    <text x="603" y="608">closed, t_err, think_time</text><text x="603" y="636">records, rejected, handle_event(e)</text>
+  </g>
+  <text x="30" y="683" font-size="14px" fill="#435b66">run_simulation(cfg) tạo một Source, một dispatcher, c worker, một Sink và một IoLP khi D &gt; 0.</text>
+</svg>

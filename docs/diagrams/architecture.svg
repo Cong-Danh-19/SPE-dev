@@ -1,0 +1,51 @@
+<svg font-family="DejaVu Sans, Arial, sans-serif" fill="#173449" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 610" width="1100" height="610" role="img" aria-labelledby="title desc">
+  <title id="title">Luồng sự kiện và dữ liệu của bộ mô phỏng BkitEvsim</title>
+  <desc id="desc">Nguồn gửi REQ tới trạm CPU. Dispatcher giao JOB cho worker. Sau khi phục vụ, worker báo IDLE và chuyển request sang I/O hoặc thẳng tới Sink. Trạm đầy gửi REJECT. Trong hệ kín, Sink phát NEXT về nguồn. Mỗi cấu hình và seed được chạy qua run_simulation để lấy SimMetrics. Bộ chạy tổng hợp kết quả vào CSV, rồi ứng dụng vẽ biểu đồ đọc CSV để xuất hình.</desc>
+  <rect width="1100" height="610" fill="white"/>
+  <text x="32" y="43" font-size="26px" font-weight="700">Luồng sự kiện của một request</text>
+  <text x="32" y="71" font-size="15px" fill="#465966">SimConfig xác định sơ đồ LP. BkSysCoEventLoop chuyển từng sự kiện theo timestamp mô phỏng.</text>
+  <g fill="none" stroke-width="2" stroke-linejoin="round" stroke="#993d25" stroke-dasharray="7 4"><path d="M335 188 V119 H1004 V188"/><path d="M805 188 V119"/></g>
+  <path fill="#993d25" d="M1004 189 l-5 -9 h10 Z M805 119 l-5 9 h10 Z"/>
+  <text x="472" y="108" font-size="14px" font-weight="700" fill="#84351f">REJECT khi đầy CPU hoặc backend S8</text>
+  <g fill="#f1f6f8" stroke="#608493" stroke-width="1.5">
+    <rect x="32" y="190" width="146" height="94" rx="9"/><rect x="240" y="190" width="190" height="94" rx="9"/>
+    <rect x="495" y="190" width="158" height="94" rx="9"/><rect x="729" y="190" width="152" height="94" rx="9"/>
+    <rect x="940" y="190" width="128" height="94" rx="9"/>
+  </g>
+  <g text-anchor="middle">
+    <g font-size="19px" font-weight="700"><text x="105" y="222">SourceLP</text><text x="335" y="222">Dispatcher</text><text x="574" y="222">WorkerLP × c</text><text x="805" y="222">IoLP</text><text x="1004" y="222">SinkLP</text></g>
+    <g font-size="14px">
+      <text x="105" y="248">Poisson γ hoặc</text><text x="105" y="268">C kết nối kín</text>
+      <text x="335" y="248">một FIFO chung hoặc</text><text x="335" y="268">c FIFO riêng</text>
+      <text x="574" y="248">CPU trung bình s</text><text x="574" y="268">hoặc κs với Bun</text>
+      <text x="805" y="248">I/O trung bình D</text><text x="805" y="268">giới hạn ở S8</text>
+      <text x="1004" y="248">hoàn tất hoặc</text><text x="1004" y="268">ghi nhận lỗi</text>
+    </g>
+    <g font-size="14px" font-weight="700"><text x="208" y="222">REQ</text><text x="462" y="222">JOB</text><text x="690" y="222">IO_REQ</text><text x="910" y="222">DONE</text></g>
+  </g>
+  <g fill="none" stroke-width="2" stroke-linejoin="round" stroke="#134d68"><path d="M178 236 H237"/><path d="M430 236 H492"/><path d="M653 236 H726"/><path d="M881 236 H937"/>
+    <path d="M547 284 V324 H335 V286"/><path d="M601 284 V354 H979 V286"/></g>
+  <path fill="#134d68" d="M239 236 l-9 -5 v10 Z M494 236 l-9 -5 v10 Z M728 236 l-9 -5 v10 Z M939 236 l-9 -5 v10 Z M335 285 l-5 9 h10 Z M979 285 l-5 9 h10 Z"/>
+  <text x="363" y="315" font-size="14px" font-weight="700">IDLE · nhả worker</text>
+  <text x="679" y="345" font-size="14px" font-weight="700">DONE trực tiếp khi D = 0</text>
+  <path fill="none" stroke-width="2" stroke-linejoin="round" stroke="#26685e" d="M1034 284 V406 H105 V287"/>
+  <path fill="#26685e" d="M105 285 l-5 9 h10 Z"/>
+  <text x="321" y="396" font-size="14px" font-weight="700" fill="#20594f">Hệ kín · NEXT sau z khi thành công, sau t_err khi bị từ chối</text>
+  <text x="32" y="458" font-size="15px" fill="#465966">ID của LP: Source 0 · Dispatcher 1 · I/O 2 (khi D &gt; 0) · Sink 3 · Worker 10 đến 10 + c − 1.</text>
+  <text x="32" y="505" font-size="23px" font-weight="700">Từ cấu hình thực nghiệm đến biểu đồ</text>
+  <g fill="#f2f7f5" stroke="#66897e" stroke-width="1.5">
+    <rect x="32" y="524" width="154" height="62" rx="7"/><rect x="220" y="524" width="184" height="62" rx="7"/>
+    <rect x="438" y="524" width="162" height="62" rx="7"/><rect x="634" y="524" width="196" height="62" rx="7"/>
+    <rect x="864" y="524" width="204" height="62" rx="7"/>
+  </g>
+  <g fill="none" stroke="#26685e" stroke-width="2"><path d="M186 555 H216 M404 555 H434 M600 555 H630 M830 555 H860"/></g>
+  <path fill="#26685e" d="M219 555 l-8 -5 v10 Z M437 555 l-8 -5 v10 Z M633 555 l-8 -5 v10 Z M863 555 l-8 -5 v10 Z"/>
+  <g text-anchor="middle" font-size="16px" font-weight="700">
+    <text x="109" y="548">SimConfig</text><text x="312" y="548">run_simulation</text><text x="519" y="548">SimMetrics</text>
+    <text x="732" y="548">Bộ chạy thí nghiệm</text><text x="966" y="548">plotting_app</text>
+  </g>
+  <g text-anchor="middle" font-size="14px">
+    <text x="109" y="572">tham số và seed</text><text x="312" y="572">tạo và chạy các LP</text><text x="519" y="572">chỉ số từng seed</text>
+    <text x="732" y="572">ghi results/*.csv</text><text x="966" y="572">xuất hình CI95</text>
+  </g>
+</svg>
