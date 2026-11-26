@@ -14,7 +14,6 @@ source .venv/Scripts/activate   # Windows (Git Bash)
 # source .venv/bin/activate       # Linux / macOS
 
 pip install -r requirements.txt
-# Copy thư mục lõi bkitevsim từ template đề tài vào ./bkitevsim/
 ```
 
 ## 2. Phân công thư mục cho 3 thành viên
@@ -22,10 +21,21 @@ pip install -r requirements.txt
 - **Thành viên 2 (`feat/tv2-analytical-experiments`):** `scenarios/analytical.py`, `apps/benchmark_experiments_app.py`, `tests/test_models.py`, `tests/test_invariants.py`
 - **Thành viên 3 (`feat/tv3-plotting-docs`):** `apps/plotting_app.py`, `docs/architecture.md`, `docs/user_manual.md`, `docs/diagrams/`
 
-## 3. Quy trình chạy chuẩn
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:cae9e53b801a80ebe7b568c4f849bf2b5d53d042575ba5266c2bf01d19ba916b -->
+
+## 3. Quy trình chạy
+
 ```bash
-make test          # Chạy kiểm thử Verification (sai số giải tích < 5% & bất biến hệ thống)
-make run-exp       # Chạy thực nghiệm E1-E5 và xuất CSV ra results/
-make plot          # Vẽ biểu đồ CI95 ra results/figures/
-make pack          # Đóng gói tệp nộp bài Spe-Ass-final-<GroupName>.zip
+make test-fast      # Kiểm tra hồi quy nhanh
+make run-exp-fast   # Thử luồng benchmark, ghi CSV thử vào results-local/
+make test           # Toàn bộ test và kiểm chứng thống kê
+make run-exp        # Verification và E1–E5 đầy đủ, ghi CSV vào results/
+make plot           # Vẽ thông lượng E1 với CI95
+make pack          # Đóng gói bài nộp
 ```
+
+Xem [hướng dẫn chạy theo từng thí nghiệm](docs/user_manual.md) và [định nghĩa phép đo, phạm vi thí nghiệm](docs/experiments.md).
+
+<!-- /coderabbit-ai-generated:v1 -->

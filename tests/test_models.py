@@ -54,7 +54,7 @@ def test_mminf():
     res = run_replications(cfg, n_seeds=10)
     th = ana.mminf(lam, 1.0 / D)
     assert rel_err(res["L_io"]["mean"], th["L"]) < 0.05
-    assert rel_err(res["R"]["mean"], th["W"]) < 0.03
+    assert rel_err(res["W_io"]["mean"], th["W"]) < 0.03
 
 
 def test_mmcc():

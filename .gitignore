@@ -18,3 +18,5 @@ Thumbs.db
 
 # Submission archives
 *.zip
+
+/results-local/

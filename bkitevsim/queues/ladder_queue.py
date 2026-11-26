@@ -23,6 +23,7 @@ import threading
 
 # Binary search library
 import bisect
+import math
 
 from ..core.event import Event
 
@@ -35,7 +36,7 @@ class LadderQueue(Generic[T]):
        
     Attributes:
         bucket_width: Time range covered by each bucket.
-        num_buckets: Number of buckets in the ladder (circular buffer).
+        num_buckets: Legacy bucket count parameter (buckets are now sparse and do not wrap).
         _buckets: A dictionary mapping bucket index to list of events
         _bucket_boundaries: A sorted list of bucket boundaries (timestamps) bucket min timestamps
         _min_bucket_idx: Current minimum bucket index for fast access
@@ -48,7 +49,7 @@ class LadderQueue(Generic[T]):
         
         Args:
             bucket_width: Time range covered by each bucket. Defaults to 1.0.
-            num_buckets: Number of buckets in the ladder (circular buffer). Defaults to 1024.
+            num_buckets: Legacy bucket count parameter (buckets are now sparse and do not wrap). Defaults to 1024.
         """
         self.bucket_width = bucket_width
         self.num_buckets = num_buckets
@@ -69,7 +70,7 @@ class LadderQueue(Generic[T]):
         Returns:
             The bucket index for the given timestamp.
         """
-        return int(timestamp / self.bucket_width) % self.num_buckets
+        return math.floor(timestamp / self.bucket_width)
     
     def _get_bucket_min_time(self, bucket_idx: int) -> float:
         """Get the minimum timestamp for a bucket index.
@@ -183,7 +184,6 @@ class LadderQueue(Generic[T]):
             
             # Find buckets that might contain events after timestamp
             target_bucket = self._get_bucket_index(timestamp)
-            bounds = self._bucket_boundaries
             
             # Check current bucket and all higher buckets
             for bucket_idx in list(self._buckets.keys()):
@@ -244,18 +244,6 @@ class LadderQueue(Generic[T]):
                 return bucket[0][0]
             return None
         
-            min_ts = None
-            for bucket in self._buckets.values():
-                if bucket:
-                    local_min = min(item[0] for item in bucket)
-                    if min_ts is None or local_min < min_ts:
-                        min_ts = local_min
-                        
-            return min_ts
-
-
-
-    
     def is_empty(self) -> bool:
         """Check if the queue is empty.
         

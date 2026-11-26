@@ -85,13 +85,13 @@ def tandem_analytical(lam: float, c: int, K: int, s: float, D: float,
                       arch: str = "shared", kappa: float = 1.0) -> Dict[str, float]:
     """Giải tích mạng nối tiếp CPU -> I/O cho Event Loop, Loom (shared) và Bun (partitioned)."""
     if arch == "partitioned":
-        k_per_q = max(1, K // c)
-        sub = mmck(lam / c, 1.0 / (kappa * s), 1, k_per_q)
+        mu = 1.0 / (kappa * s)
+        sub = mm1(lam / c, mu) if K >= 10**9 else mm1k(lam / c, mu, K // c)
         X = sub["X"] * c
         L_cpu = sub["L"] * c
         W_cpu, Wq, Pblock, U = sub["W"], sub["Wq"], sub["Pblock"], sub["U"]
     else:
-        sub = mmck(lam, 1.0 / s, c, K)
+        sub = mmc(lam, 1.0 / s, c) if K >= 10**9 else mmck(lam, 1.0 / s, c, K)
         X, L_cpu, W_cpu, Wq, Pblock, U = sub["X"], sub["L"], sub["W"], sub["Wq"], sub["Pblock"], sub["U"]
 
     L_io = X * D

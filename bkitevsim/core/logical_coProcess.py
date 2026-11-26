@@ -265,24 +265,6 @@ class BkSysCoEventLoop:
         # Get next event time peek priority from event queue
         next_event_time = self._event_queue.peek_priority()
         
-        # Fallback: if peek_priority returns None
-        #           but queue has items, scan buckets directly
-        if next_event_time is None and (self._event_queue.size() > 0 
-           or hasattr(self._event_queue._queue, '_buckets')):
-            # Scan all buckets to find minimum timestamp
-            min_ts = None
-            for bucket in self._event_queue._queue._buckets.values():
-                if bucket:
-                    ts = bucket[0][0]
-                    if min_ts is None or ts < min_ts:
-                        min_ts = ts
-            if min_ts is not None and min_ts <= self.end_time:
-                next_event_time = min_ts
-
-        # Verify next_event_time existance and is within end_time
-        if next_event_time is None and hasattr(self._event_queue, '_heap') and self._event_queue._heap:
-            next_event_time = self._event_queue._heap[0][0]
-        
         next_waiter_time = None
         if not self._time_waiters.is_empty():
             next_waiter = self._time_waiters.peek()
@@ -325,9 +307,9 @@ class BkSysCoEventLoop:
         """
         # check existed events at current time (non-empty event queue)            
         count = 0
-        while not self._event_queue.is_empty():
+        while True:
             next_priority = self._event_queue.peek_priority()
-            if next_priority is None or next_priority > self._current_time:
+            if next_priority is None or next_priority > min(self._current_time, self.end_time):
                 break
             event = self._event_queue.pop()
             if event is None:
@@ -344,25 +326,25 @@ class BkSysCoEventLoop:
                     lp_instance.set_local_virt_time(event.timestamp)
                     
                     # Log synchronization for visualization
-                    logger.debug(f"SYNC: LP {event.receiver_id} LVT {old_lvt:.3f} -> {event.timestamp:.3f} (GVT={self._current_time:.3f})")
+                    logger.debug("SYNC: LP %s LVT %.3f -> %.3f (GVT=%.3f)",
+                                 event.receiver_id, old_lvt, event.timestamp, self._current_time)
                     
                     lp_instance.handle_event(event)
                 except Exception as e:
                     logger.error(f"Error in handle_event for LP {event.receiver_id}: {e}")
             
             # After delivering, check if any LPs are waiting for this event type
-            waiters = self._event_waiters.get(event.event_type, [])
-            for lp_id, future in waiters:
-                if lp_id == event.receiver_id and not future.done():
-                    future.set_result(event)
-                    self._lp_status[lp_id] = BkSysCoLPStatus.READY
-            
-            # Remove fulfilled waiters
-            self._event_waiters[event.event_type] = [
-                (lid, f) for lid, f in waiters
-                if lid != event.receiver_id or not f.done()
-            ]
-            
+            waiters = self._event_waiters.get(event.event_type)
+            if waiters:
+                for lp_id, future in waiters:
+                    if lp_id == event.receiver_id and not future.done():
+                        future.set_result(event)
+                        self._lp_status[lp_id] = BkSysCoLPStatus.READY
+                self._event_waiters[event.event_type] = [
+                    (lid, f) for lid, f in waiters
+                    if lid != event.receiver_id or not f.done()
+                ]
+
             count += 1
             self.stats["events_processed"] += 1
         
@@ -402,6 +384,17 @@ class BkSysCoEventLoop:
             await asyncio.sleep(0)
             
             while self._running:
+                # Event handlers still run after coroutine startup has completed.
+                # With no live tasks, yielding to asyncio cannot advance an LP.
+                if all(status == BkSysCoLPStatus.TERMINATED for status in self._lp_status.values()):
+                    while self._running:
+                        if max_iterations and iteration >= max_iterations:
+                            break
+                        self._process_events_at_current_time()
+                        if not self._running or not self._advance_time_to_next_event():
+                            break
+                        iteration += 1
+                    break
                 if max_iterations and iteration >= max_iterations:
                     logger.info(f"Reached max iterations ({max_iterations})")
                     break
@@ -445,7 +438,7 @@ class BkSysCoEventLoop:
                 if not time_advanced:
                     alive_lps = [lp_id for lp_id, status in self._lp_status.items()
                              if status != BkSysCoLPStatus.TERMINATED]
-                    if alive_lps:
+                    if not alive_lps:
                         logger.info("All LPs terminated - simulation complete")
                     else:
                         logger.warning(

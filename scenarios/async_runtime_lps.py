@@ -34,6 +34,8 @@ class SourceLP(BaseSimLP):
         self.closed_C = closed_C
         self.sent = 0
         self.t_warm = 0.0
+        self.n_before_warm = 0
+        self._first_at_timestamp = 1
         self.t_last = 0.0
 
     async def coroutine_run(self):
@@ -49,10 +51,13 @@ class SourceLP(BaseSimLP):
             if self.sent >= self.n_req:
                 return
             self.sent += 1
+            if t != self.t_last:
+                self._first_at_timestamp = self.sent
             if self.sent == self.warm_reqs + 1:
                 self.t_warm = t
+                self.n_before_warm = self._first_at_timestamp - 1
             self.t_last = t
-            if self.closed_C == 0 and e.event_type == "ARRIVAL":
+            if self.closed_C == 0 and self.sent < self.n_req:
                 self._send(t, self.lp_id, "ARRIVAL", {}, at=t + self.rng.expovariate(self.gamma))
             self._send(t, DISP_ID, "REQ", {"rid": self.sent, "t_arr": t})
 
@@ -75,7 +80,7 @@ class SharedDispatcherLP(BaseSimLP):
         t = e.timestamp
         if e.event_type == "REQ":
             if self.n >= self.K:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "stage": "cpu"})
             else:
                 self.n += 1
                 if self.idle:
@@ -103,7 +108,7 @@ class PartitionedDispatcherLP(BaseSimLP):
                  routing: str = "random", **kw):
         super().__init__(lp_id, seed)
         self.c = c
-        self.k_per_worker = max(1, K // c)
+        self.k_per_worker = K // c
         self.routing = routing
         self.busy = [False] * c
         self.queues = [deque() for _ in range(c)]
@@ -128,7 +133,7 @@ class PartitionedDispatcherLP(BaseSimLP):
             else:
                 w = self.rng.randrange(self.c)
             if self.counts[w] >= self.k_per_worker:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "stage": "cpu"})
             else:
                 self.counts[w] += 1
                 if not self.busy[w]:
@@ -195,7 +200,7 @@ class IoLP(BaseSimLP):
         t = e.timestamp
         if e.event_type == "IO_REQ":
             if self.backend_limit is not None and self.n >= self.backend_limit:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "stage": "io"})
                 return
             self.n += 1
             self.trace.append((t, self.n))
@@ -216,6 +221,7 @@ class SinkLP(BaseSimLP):
         self.think_time = think_time
         self.records = []
         self.rejected = []
+        self.cpu_completed_before_io_reject = []
 
     def handle_event(self, e: Event):
         t = e.timestamp
@@ -224,10 +230,13 @@ class SinkLP(BaseSimLP):
             t_arr = p["t_arr"]
             t_start = p.get("t_start", t_arr)
             t_cpu_end = p.get("t_cpu_end", t)
-            self.records.append((t_arr, t - t_arr, t_cpu_end - t_arr, t_start - t_arr))
+            self.records.append((t, t - t_arr, t_cpu_end - t_arr, t_start - t_arr,
+                                 t - t_cpu_end, t_cpu_end))
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.think_time)
         elif e.event_type == "REJECT":
-            self.rejected.append(p["t_arr"])
+            self.rejected.append((p["t_arr"], t, p["stage"]))
+            if p["stage"] == "io":
+                self.cpu_completed_before_io_reject.append((t, t - p["t_arr"]))
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.t_err)

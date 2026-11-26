@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 from scenarios.config import SimConfig
 from apps.simulator_app import run_simulation
@@ -23,7 +24,7 @@ def test_closed_loop_littles_law():
     assert m.conservation_ok is True
     assert m.T_obs > 0
     X_ok = m.X
-    X_err = m.n_rejected / m.T_obs
+    X_err = m.X_err
     estimated_C = X_ok * (m.R + think_time) + X_err * t_err
     assert abs(estimated_C - C) / C < 0.04
 
@@ -63,7 +64,7 @@ def test_seed_reproducibility():
     assert m1.Pblock == m2.Pblock
 
 
-def test_dispatcher_equivalence():
+def test_coroutine_lps_are_independent_of_dispatcher_option():
     cfg_seq = SimConfig(
         gamma=3000.0, c=8, K=100, s=1e-3, D=50e-3,
         dispatcher_type="sequential", n_req=20_000, seed=12,
@@ -112,7 +113,7 @@ def test_closed_loop_high_load_no_ceiling_violation():
     m = run_simulation(cfg)
     assert m.conservation_ok is True
     assert m.X <= (cfg.c / cfg.s) * 1.02
-    X_err = m.n_rejected / m.T_obs
+    X_err = m.X_err
     estimated_C = m.X * m.R + X_err * t_err
     assert abs(estimated_C - C) / C < 0.05
 
@@ -125,4 +126,67 @@ def test_saturation_rho_one_dynamic_warmup():
     )
     m = run_simulation(cfg)
     assert m.conservation_ok is True
-    assert m.R > 0.055  
+    assert m.warm_reqs == 9_600
+    assert m.R > 0.055
+
+def test_closed_loop_drains_after_long_think_time():
+    m = run_simulation(SimConfig(
+        gamma=0, closed_C=1, think_time=1, D=0, dist_cpu="det", n_req=1000,
+    ))
+    assert m.n_sent == 1000
+    assert m.warm_reqs == 100
+    assert m.n_arrived == 900
+    assert m.t_warm == pytest.approx(100 * 1.001)
+    assert m.T_obs == pytest.approx(899 * 1.001)
+    assert m.conservation_ok
+
+
+def test_s8_arrival_cohort_and_station_rejections():
+    m = run_simulation(SimConfig(
+        gamma=7000, c=8, K=400, arch="partitioned", kappa=1.25,
+        backend_limit=300, seed=101,
+    ))
+    # Independent reproduction of TV1's seed 101 case.
+    assert m.n_arrived == 16_000
+    assert (m.n_rejected_cpu, m.n_rejected_io) == (1560, 1165)
+    assert m.Pblock == 2725 / 16_000
+    assert m.n_error_events == 2763
+    assert m.X_err == m.n_error_events / m.T_obs
+    assert m.p99_cpu < m.p99
+
+
+def test_round_robin_report_excludes_poisson_reference():
+    from apps.benchmark_experiments_app import evaluate_config
+
+    raw = []
+    row = evaluate_config("test", "rr", SimConfig(
+        gamma=2000, c=2, K=3, D=0, arch="partitioned", routing="rr", n_req=200,
+    ), n_seeds=1, raw_collector=raw)
+    assert row["analytical_applicable"] is False
+    assert np.isnan(row["ana_Pblock"])
+    assert row["effective_K"] == raw[0]["effective_K"] == 2
+    assert raw[0]["n_rejected_cpu"] == raw[0]["n_rejected"]
+    assert raw[0]["n_rejected_io"] == 0
+
+
+def test_ladder_queue_orders_past_legacy_bucket_cycle():
+    from bkitevsim.core import Event
+    from bkitevsim.queues import LadderQueue
+
+    queue = LadderQueue(bucket_width=1, num_buckets=4)
+    for ts, label in [(8, "future"), (3, "first"), (3, "second"), (4, "next")]:
+        queue.push(Event(ts, 0, 1, label))
+    assert queue.peek_timestamp() == 3
+    assert [e.event_type for e in queue.pop_events_after(4)] == ["future"]
+    assert [queue.pop().event_type for _ in range(3)] == ["first", "second", "next"]
+
+
+def test_cpu_percentile_includes_jobs_rejected_by_backend():
+    m = run_simulation(SimConfig(
+        gamma=0, closed_C=1, n_req=100, D=0.05, backend_limit=0, dist_cpu="det",
+    ))
+    assert m.Pblock == 1 and m.n_done == 0
+    assert m.n_rejected_io == m.n_arrived
+    assert np.isnan(m.p99)
+    assert m.p95_cpu == pytest.approx(0.001)
+    assert m.p99_cpu == pytest.approx(0.001)
