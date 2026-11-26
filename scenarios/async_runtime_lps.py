@@ -33,6 +33,7 @@ class SourceLP(BaseSimLP):
         self.warm_reqs = warm_reqs
         self.closed_C = closed_C
         self.sent = 0
+        self.arrived_obs = 0
         self.t_warm = 0.0
         self.t_last = 0.0
 
@@ -51,6 +52,8 @@ class SourceLP(BaseSimLP):
             self.sent += 1
             if self.sent == self.warm_reqs + 1:
                 self.t_warm = t
+            if self.sent > self.warm_reqs:
+                self.arrived_obs += 1
             self.t_last = t
             if self.closed_C == 0 and e.event_type == "ARRIVAL":
                 self._send(t, self.lp_id, "ARRIVAL", {}, at=t + self.rng.expovariate(self.gamma))
@@ -66,16 +69,24 @@ class SharedDispatcherLP(BaseSimLP):
         self.idle = list(range(c))
         self.Q = deque()
         self.n = 0
-        self.trace = [(0.0, 0, 0)]
+        self.trace_t = [0.0]
+        self.trace_n = [0]
+        self.trace_busy = [0]
+
+    @property
+    def trace(self):
+        return list(zip(self.trace_t, self.trace_n, self.trace_busy))
 
     def _log(self, t: float):
-        self.trace.append((t, self.n, self.c - len(self.idle)))
+        self.trace_t.append(t)
+        self.trace_n.append(self.n)
+        self.trace_busy.append(self.c - len(self.idle))
 
     def handle_event(self, e: Event):
         t = e.timestamp
         if e.event_type == "REQ":
             if self.n >= self.K:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "reject_source": "cpu"})
             else:
                 self.n += 1
                 if self.idle:
@@ -108,16 +119,25 @@ class PartitionedDispatcherLP(BaseSimLP):
         self.busy = [False] * c
         self.queues = [deque() for _ in range(c)]
         self.counts = [0] * c
+        self.total_n = 0
+        self.total_busy = 0
         self.rr_idx = 0
-        self.trace = [(0.0, 0, 0)]
+        self.trace_t = [0.0]
+        self.trace_n = [0]
+        self.trace_busy = [0]
 
     @property
     def n(self) -> int:
-        """Tổng số request đang xử lý + đang chờ trên tất cả các hàng đợi con."""
-        return sum(self.counts)
-    
+        return self.total_n
+
+    @property
+    def trace(self):
+        return list(zip(self.trace_t, self.trace_n, self.trace_busy))
+
     def _log(self, t: float):
-        self.trace.append((t, sum(self.counts), sum(1 for b in self.busy if b)))
+        self.trace_t.append(t)
+        self.trace_n.append(self.total_n)
+        self.trace_busy.append(self.total_busy)
 
     def handle_event(self, e: Event):
         t = e.timestamp
@@ -128,11 +148,13 @@ class PartitionedDispatcherLP(BaseSimLP):
             else:
                 w = self.rng.randrange(self.c)
             if self.counts[w] >= self.k_per_worker:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "reject_source": "cpu"})
             else:
                 self.counts[w] += 1
+                self.total_n += 1
                 if not self.busy[w]:
                     self.busy[w] = True
+                    self.total_busy += 1
                     payload = {**e.payload, "t_start": t}
                     self._send(t, WORKER_BASE_ID + w, "JOB", payload)
                 else:
@@ -141,12 +163,14 @@ class PartitionedDispatcherLP(BaseSimLP):
         elif e.event_type == "IDLE":
             w = e.payload["w"]
             self.counts[w] -= 1
+            self.total_n -= 1
             if self.queues[w]:
                 nxt = self.queues[w].popleft()
                 payload = {**nxt, "t_start": t}
                 self._send(t, WORKER_BASE_ID + w, "JOB", payload)
             else:
                 self.busy[w] = False
+                self.total_busy -= 1
             self._log(t)
 
 
@@ -189,21 +213,28 @@ class IoLP(BaseSimLP):
         self.dist_io = dist_io
         self.backend_limit = backend_limit
         self.n = 0
-        self.trace = [(0.0, 0)]
+        self.trace_t = [0.0]
+        self.trace_n = [0]
+
+    @property
+    def trace(self):
+        return list(zip(self.trace_t, self.trace_n))
 
     def handle_event(self, e: Event):
         t = e.timestamp
         if e.event_type == "IO_REQ":
             if self.backend_limit is not None and self.n >= self.backend_limit:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "reject_source": "io"})
                 return
             self.n += 1
-            self.trace.append((t, self.n))
+            self.trace_t.append(t)
+            self.trace_n.append(self.n)
             dur = self.D if self.dist_io == "det" else self.rng.expovariate(1.0 / self.D)
             self._send(t, self.lp_id, "IO_FIN", e.payload, at=t + dur)
         elif e.event_type == "IO_FIN":
             self.n -= 1
-            self.trace.append((t, self.n))
+            self.trace_t.append(t)
+            self.trace_n.append(self.n)
             self._send(t, SINK_ID, "DONE", e.payload)
 
 
@@ -228,6 +259,6 @@ class SinkLP(BaseSimLP):
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.think_time)
         elif e.event_type == "REJECT":
-            self.rejected.append(p["t_arr"])
+            self.rejected.append((p["t_arr"], t, p.get("reject_source", "cpu")))
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.t_err)

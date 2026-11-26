@@ -55,3 +55,12 @@ class SimMetrics:
     n_arrived: int
     T_obs: float
     conservation_ok: bool
+    n_rejected_cpu: int = 0
+    n_rejected_io: int = 0
+    Pblock_cpu: float = 0.0
+    Pblock_io: float = 0.0
+    p95_cpu: float = 0.0
+    p99_cpu: float = 0.0
+    K_eff: int = 0
+    n_sent: int = 0
+    completed_target: bool = True
