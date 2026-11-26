@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="600" viewBox="0 0 1240 600" role="img" aria-labelledby="title desc">
+  <title id="title">Luồng xử lý một request trong mô phỏng DES</title>
+  <desc id="desc">Source gửi REQ tới dispatcher CPU. Worker thực hiện JOB, báo IDLE và chuyển request sang I/O hoặc Sink. Hai trạm có thể từ chối. Chỉ trong hệ kín, Sink báo Source gửi tiếp.</desc>
+  <rect x="0" y="0" width="1240" height="600" rx="0" fill="#ffffff" stroke="none"/>
+  <text x="28" y="44" font-family="sans-serif" font-size="31" font-weight="700" fill="#182d3b" text-anchor="start">Luồng xử lý một request</text>
+  <text x="28" y="75" font-family="sans-serif" font-size="17" font-weight="400" fill="#425b6b" text-anchor="start">Thời gian CPU và I/O được biểu diễn bằng các sự kiện có timestamp trên đồng hồ mô phỏng.</text>
+  <path d="M657 193 V111 H1113 V191" fill="none" stroke="#667985" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 4"/>
+  <polygon points="1113,192 1108,181 1118,181" fill="#667985"/>
+  <text x="876" y="103" font-family="sans-serif" font-size="14" font-weight="600" fill="#28465a" text-anchor="middle">DONE  ·  D = 0, bỏ qua I/O</text>
+  <path d="M587 193 V157 H358 V191" fill="none" stroke="#38556a" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="358,192 353,181 363,181" fill="#38556a"/>
+  <text x="477" y="148" font-family="sans-serif" font-size="14" font-weight="600" fill="#28465a" text-anchor="middle">IDLE  ·  worker rảnh</text>
+  <rect x="26" y="193" width="172" height="109" rx="9" fill="#ecf4f6" stroke="#a8bdc8"/>
+  <text x="38" y="219" font-family="sans-serif" font-size="20" font-weight="700" fill="#182d3b" text-anchor="start">SourceLP</text>
+  <text x="38" y="241" font-family="sans-serif" font-size="14" font-weight="700" fill="#17665d" text-anchor="start">ID 0</text>
+  <text x="38" y="267" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Mở: tải γ</text>
+  <text x="38" y="288" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Kín: C kết nối</text>
+  <rect x="261" y="193" width="186" height="109" rx="9" fill="#ecf4f6" stroke="#a8bdc8"/>
+  <text x="273" y="219" font-family="sans-serif" font-size="20" font-weight="700" fill="#182d3b" text-anchor="start">Dispatcher CPU</text>
+  <text x="273" y="241" font-family="sans-serif" font-size="14" font-weight="700" fill="#17665d" text-anchor="start">ID 1</text>
+  <text x="273" y="267" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Nhận hoặc từ chối</text>
+  <text x="273" y="288" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Xếp FIFO, cấp việc</text>
+  <rect x="511" y="193" width="196" height="109" rx="9" fill="#ecf4f6" stroke="#a8bdc8"/>
+  <text x="523" y="219" font-family="sans-serif" font-size="20" font-weight="700" fill="#182d3b" text-anchor="start">WorkerLP × c</text>
+  <text x="523" y="241" font-family="sans-serif" font-size="14" font-weight="700" fill="#17665d" text-anchor="start">ID 10 … 10+c−1</text>
+  <text x="523" y="267" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Nhận JOB</text>
+  <text x="523" y="288" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Tự hẹn SERVED</text>
+  <rect x="789" y="193" width="166" height="109" rx="9" fill="#eaf4ee" stroke="#a8bdc8"/>
+  <text x="801" y="219" font-family="sans-serif" font-size="20" font-weight="700" fill="#182d3b" text-anchor="start">IoLP</text>
+  <text x="801" y="241" font-family="sans-serif" font-size="14" font-weight="700" fill="#17665d" text-anchor="start">ID 2</text>
+  <text x="801" y="267" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Nhận IO_REQ</text>
+  <text x="801" y="288" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Tự hẹn IO_FIN</text>
+  <rect x="1031" y="193" width="183" height="109" rx="9" fill="#ecf4f6" stroke="#a8bdc8"/>
+  <text x="1043" y="219" font-family="sans-serif" font-size="20" font-weight="700" fill="#182d3b" text-anchor="start">SinkLP</text>
+  <text x="1043" y="241" font-family="sans-serif" font-size="14" font-weight="700" fill="#17665d" text-anchor="start">ID 3</text>
+  <text x="1043" y="267" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Ghi nhận DONE</text>
+  <text x="1043" y="288" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">hoặc REJECT</text>
+  <path d="M198 250 H258" fill="none" stroke="#38556a" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="260,250 250,245 250,255" fill="#38556a"/>
+  <text x="229" y="241" font-family="sans-serif" font-size="14" font-weight="600" fill="#28465a" text-anchor="middle">REQ</text>
+  <path d="M447 250 H508" fill="none" stroke="#38556a" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="510,250 500,245 500,255" fill="#38556a"/>
+  <text x="479" y="241" font-family="sans-serif" font-size="14" font-weight="600" fill="#28465a" text-anchor="middle">JOB</text>
+  <path d="M707 250 H786" fill="none" stroke="#38556a" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="788,250 778,245 778,255" fill="#38556a"/>
+  <text x="747" y="241" font-family="sans-serif" font-size="14" font-weight="600" fill="#28465a" text-anchor="middle">IO_REQ</text>
+  <path d="M955 250 H1028" fill="none" stroke="#38556a" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="1030,250 1020,245 1020,255" fill="#38556a"/>
+  <text x="993" y="241" font-family="sans-serif" font-size="14" font-weight="600" fill="#28465a" text-anchor="middle">DONE</text>
+  <path d="M351 302 V369 H1070 V305" fill="none" stroke="#a65038" stroke-width="2" stroke-linejoin="round"/>
+  <polygon points="1070,303 1065,314 1075,314" fill="#a65038"/>
+  <path d="M867 302 V369" fill="none" stroke="#a65038" stroke-width="2"/>
+  <circle cx="867" cy="369" r="4" fill="#a65038"/>
+  <text x="365" y="352" font-family="sans-serif" font-size="15" font-weight="600" fill="#893b2a" text-anchor="start">REJECT  ·  hàng CPU đầy</text>
+  <text x="875" y="331" font-family="sans-serif" font-size="15" font-weight="600" fill="#893b2a" text-anchor="start">REJECT  ·  backend đầy</text>
+  <text x="875" y="351" font-family="sans-serif" font-size="15" font-weight="600" fill="#893b2a" text-anchor="start">ở kịch bản S8</text>
+  <path d="M1158 302 V441 H111 V305" fill="none" stroke="#1b7665" stroke-width="2" stroke-linejoin="round" stroke-dasharray="8 4"/>
+  <polygon points="111,303 106,314 116,314" fill="#1b7665"/>
+  <text x="631" y="429" font-family="sans-serif" font-size="15" font-weight="600" fill="#166758" text-anchor="middle">NEXT  ·  chỉ trong hệ kín  ·  sau z khi thành công, sau t_err khi bị từ chối</text>
+  <rect x="26" y="480" width="581" height="96" rx="9" fill="#f3f6f8" stroke="#cfdae0"/>
+  <rect x="627" y="480" width="587" height="96" rx="9" fill="#f3f6f8" stroke="#cfdae0"/>
+  <text x="43" y="509" font-family="sans-serif" font-size="20" font-weight="700" fill="#182d3b" text-anchor="start">Hàng chung — Event loop và Loom</text>
+  <text x="43" y="536" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Một FIFO cấp việc cho worker rảnh. K gồm cả số request</text>
+  <text x="43" y="557" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">đang dùng CPU và số đang chờ.</text>
+  <text x="645" y="509" font-family="sans-serif" font-size="20" font-weight="700" fill="#182d3b" text-anchor="start">Hàng riêng — Bun</text>
+  <text x="645" y="536" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Dispatcher chọn một trong N hàng trước khi xét chỗ trống.</text>
+  <text x="645" y="557" font-family="sans-serif" font-size="16" font-weight="400" fill="#182d3b" text-anchor="start">Mỗi worker nhận việc từ hàng của chính nó.</text>
+</svg>

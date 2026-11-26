@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="653" viewBox="0 0 1120 653" role="img" aria-labelledby="title desc">
+  <title id="title">Sơ đồ lớp của các logical process</title>
+  <desc id="desc">Sáu logical process nghiệp vụ kế thừa BaseSimLP. BaseSimLP kế thừa BkSysCoLogicalProcess, lớp coroutine kế thừa BkSysLogicalProcess. Mỗi hộp liệt kê một số thuộc tính và phương thức có trong mã.</desc>
+  <rect x="0" y="0" width="1120" height="653" rx="0" fill="#ffffff" stroke="none"/>
+  <text x="27" y="44" font-family="sans-serif" font-size="31" font-weight="700" fill="#182d3b" text-anchor="start">Sơ đồ lớp của các logical process</text>
+  <rect x="405" y="68" width="310" height="97" rx="4" fill="#e8eff3" stroke="#8aa2ad"/>
+  <text x="419" y="92" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">BkSysLogicalProcess</text>
+  <path d="M405 103 H715" fill="none" stroke="#bbccd3" stroke-width="2"/>
+  <text x="419" y="124" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">lp_id, state</text>
+  <path d="M405 135 H715" fill="none" stroke="#bbccd3" stroke-width="2"/>
+  <text x="419" y="156" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">send_event(event)</text>
+  <rect x="405" y="201" width="310" height="96" rx="4" fill="#e8eff3" stroke="#8aa2ad"/>
+  <text x="419" y="225" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">BkSysCoLogicalProcess</text>
+  <path d="M405 236 H715" fill="none" stroke="#bbccd3" stroke-width="2"/>
+  <text x="419" y="257" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">_event_loop</text>
+  <path d="M405 268 H715" fill="none" stroke="#bbccd3" stroke-width="2"/>
+  <text x="419" y="289" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">set_event_loop(event_loop)</text>
+  <rect x="405" y="351" width="310" height="96" rx="4" fill="#dcefe8" stroke="#8aa2ad"/>
+  <text x="419" y="375" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">BaseSimLP</text>
+  <path d="M405 386 H715" fill="none" stroke="#bbccd3" stroke-width="2"/>
+  <text x="419" y="407" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">rng</text>
+  <path d="M405 418 H715" fill="none" stroke="#bbccd3" stroke-width="2"/>
+  <text x="419" y="439" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">_send(now, dst, etype, …)</text>
+  <path d="M560 201 V178" fill="none" stroke="#476273" stroke-width="2"/>
+  <polygon points="560,166 552,179 568,179" fill="#ffffff" stroke="#476273" stroke-width="2"/>
+  <path d="M560 351 V311" fill="none" stroke="#476273" stroke-width="2"/>
+  <polygon points="560,298 552,312 568,312" fill="#ffffff" stroke="#476273" stroke-width="2"/>
+  <rect x="27" y="183" width="290" height="115" rx="4" fill="#f4f8f8" stroke="#9ab0b9"/>
+  <text x="39" y="207" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">SourceLP</text>
+  <path d="M27 218 H317" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="40" y="239" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">sent, n_req, closed_C</text>
+  <text x="40" y="258" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">t_warm, t_last</text>
+  <path d="M27 266 H317" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="40" y="287" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">coroutine_run()</text>
+  <rect x="27" y="342" width="290" height="115" rx="4" fill="#f4f8f8" stroke="#9ab0b9"/>
+  <text x="39" y="366" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">SharedDispatcherLP</text>
+  <path d="M27 377 H317" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="40" y="398" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">c, K, n</text>
+  <text x="40" y="417" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">idle, Q, trace</text>
+  <path d="M27 425 H317" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="40" y="446" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">handle_event(e)</text>
+  <rect x="27" y="501" width="290" height="115" rx="4" fill="#f4f8f8" stroke="#9ab0b9"/>
+  <text x="39" y="525" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">PartitionedDispatcherLP</text>
+  <path d="M27 536 H317" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="40" y="557" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">queues, counts, busy</text>
+  <text x="40" y="576" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">k_per_worker, routing</text>
+  <path d="M27 584 H317" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="40" y="605" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">handle_event(e)</text>
+  <rect x="803" y="183" width="290" height="115" rx="4" fill="#f4f8f8" stroke="#9ab0b9"/>
+  <text x="815" y="207" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">WorkerLP</text>
+  <path d="M803 218 H1093" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="816" y="239" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">s, D, dist_cpu</text>
+  <text x="816" y="258" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">heavy_prob, heavy_mult</text>
+  <path d="M803 266 H1093" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="816" y="287" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">_sample_service()</text>
+  <rect x="803" y="342" width="290" height="115" rx="4" fill="#f4f8f8" stroke="#9ab0b9"/>
+  <text x="815" y="366" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">IoLP</text>
+  <path d="M803 377 H1093" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="816" y="398" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">n, D, backend_limit</text>
+  <text x="816" y="417" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">dist_io, trace</text>
+  <path d="M803 425 H1093" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="816" y="446" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">handle_event(e)</text>
+  <rect x="803" y="501" width="290" height="115" rx="4" fill="#f4f8f8" stroke="#9ab0b9"/>
+  <text x="815" y="525" font-family="sans-serif" font-size="17.5" font-weight="700" fill="#182d3b" text-anchor="start">SinkLP</text>
+  <path d="M803 536 H1093" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="816" y="557" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">records, rejected</text>
+  <text x="816" y="576" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">closed, t_err, think_time</text>
+  <path d="M803 584 H1093" fill="none" stroke="#cbd7da" stroke-width="2"/>
+  <text x="816" y="605" font-family="monospace" font-size="15" font-weight="400" fill="#182d3b" text-anchor="start">handle_event(e)</text>
+  <path d="M317 240 H356 V558 H317 M317 399 H391" fill="none" stroke="#476273" stroke-width="2"/>
+  <polygon points="404,399 391,392 391,406" fill="#ffffff" stroke="#476273" stroke-width="2"/>
+  <path d="M803 240 H766 V558 H803 M803 399 H729" fill="none" stroke="#476273" stroke-width="2"/>
+  <polygon points="716,399 729,392 729,406" fill="#ffffff" stroke="#476273" stroke-width="2"/>
+  <text x="405" y="494" font-family="sans-serif" font-size="14" font-weight="400" fill="#425b6b" text-anchor="start">Mũi tam giác rỗng chỉ lớp cha.</text>
+  <text x="405" y="518" font-family="sans-serif" font-size="14" font-weight="400" fill="#425b6b" text-anchor="start">Mỗi cấu hình tạo một dispatcher CPU</text>
+  <text x="405" y="539" font-family="sans-serif" font-size="14" font-weight="400" fill="#425b6b" text-anchor="start">và c đối tượng WorkerLP. IoLP được</text>
+  <text x="405" y="560" font-family="sans-serif" font-size="14" font-weight="400" fill="#425b6b" text-anchor="start">tạo khi D &gt; 0.</text>
+</svg>
