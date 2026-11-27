@@ -1,6 +1,6 @@
 """Package the seven submission folders from the current working tree."""
 import argparse
-import hashlib
+from apps.report_artifacts import REPORT_FILES, report_hashes
 import json
 import re
 from pathlib import Path
@@ -27,15 +27,12 @@ def package(group, output=None):
                 ROOT / "Architecture and class diagrams" / "architecture.svg"]
     required += [ROOT / folder / 'README.md' for folder in FOLDERS[2:]]
     results = PROJECT / "results" / "phase1_design"
-    outputs = {"report.html", "runtime_validation.csv", "verification.csv", "tandem.csv",
-               "slo.csv", "e6_factorial.csv", "verification_followup_raw.csv",
-               *(f"design_E{i}_{kind}" for i in range(1, 7) for kind in ("raw.csv", "summary.csv", "manifest.json"))}
-    required.extend(results / name for name in outputs | {"audit-manifest.json"})
+    required.extend(results / name for name in (*REPORT_FILES, "audit-manifest.json"))
     missing = [str(p) for p in required if not p.is_file() or not p.stat().st_size]
     if missing:
         raise FileNotFoundError("Missing required submission files: " + ", ".join(missing))
     hashes = json.loads((results / "audit-manifest.json").read_text(encoding="utf-8"))
-    if set(hashes) != outputs or any(hashlib.sha256((results / f).read_bytes()).hexdigest() != hashes[f] for f in outputs):
+    if hashes != report_hashes(results):
         raise ValueError("Experiment outputs changed; regenerate and audit the report before packaging")
     name = f'Spe-Ass-final-{group}'
     archive = Path(output).resolve() if output else ROOT / f'{name}.zip'

@@ -1,5 +1,5 @@
 """Audit the final YY9B seed results and render a self-contained report."""
-import hashlib
+from apps.report_artifacts import report_hashes
 import json
 from itertools import combinations
 from pathlib import Path
@@ -197,9 +197,7 @@ def main():
     out += ['<h2 id="validation">Validation · Workload đối chứng</h2><p>Lặp lại minh họa ở §1.4 của design bằng Python asyncio: mỗi tác vụ chờ 0,2 giây. Bảng là trung vị ba lần đo bằng đồng hồ thật. Chờ I/O đồng thời cho phép các khoảng chờ chồng lấp; chặn luồng event loop khiến chúng cộng dồn. So sánh này kiểm tra giả định về chờ I/O ở mức cơ chế.</p>',times.to_html(),'<p><a href="runtime_validation.csv">Dữ liệu đối chứng</a></p>']
     out += ['<h2>Giới hạn validation</h2><p>Đối chiếu nghiệm giải tích kiểm tra việc hiện thực mô hình. Các xu hướng nghẽn CPU, chờ I/O và chia hàng là bằng chứng định tính; chưa đo trực tiếp các runtime thật. Đánh giá chéo của nhóm khác thuộc Phase 3.</p></html>']
     (RESULTS/"report.html").write_text("\n".join(out),encoding="utf-8")
-    files = [f"design_{g}_{suffix}" for g in GROUPS for suffix in ("raw.csv", "summary.csv", "manifest.json")]
-    files += ["report.html", "slo.csv", "tandem.csv", "verification.csv", "runtime_validation.csv", "e6_factorial.csv", "verification_followup_raw.csv"]
-    hashes = {name: hashlib.sha256((RESULTS / name).read_bytes()).hexdigest() for name in files}
+    hashes = report_hashes(RESULTS)
     (RESULTS / "audit-manifest.json").write_text(json.dumps(hashes, indent=2) + "\n", encoding="utf-8")
 
 
