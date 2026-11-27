@@ -3,7 +3,13 @@
 <!-- coderabbit-ai-generated-section:v1:c47f72ee5d54752fb875df732da68fce216cd31d57141540cab6e9fb08acc1e3 -->
 
 # Kiểm chứng và đánh giá
-Mở [báo cáo Phase 2](../SPE-dev-backup/results/phase1_design/report.html) bằng trình duyệt. Mục E5 đối chiếu X, W, L và xác suất từ chối với nghiệm giải tích ở 18 cấu hình; mục mạng nối tiếp đối chiếu R, số request tại I/O và xác suất từ chối. Tệp [verification.csv](../SPE-dev-backup/results/phase1_design/verification.csv) và [tandem.csv](../SPE-dev-backup/results/phase1_design/tandem.csv) lưu cả những phép đối chiếu ngoài ngưỡng. E2 kiểm tra định luật Little trên kết nối đang xử lý và kết nối chờ thử lại.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:f9c7d688b2fa728e169cdae51468e093457957e56ffe2be6bd19a138af6f335a -->
+
+Đọc [bản PDF kết quả](YY9B-Phase2.pdf) hoặc mở [báo cáo HTML](../SPE-dev-backup/results/phase1_design/report.html) để tải các CSV. PDF là bản in của lượt bàn giao; nếu chạy lại thí nghiệm, mở báo cáo HTML mới và dùng chức năng in sang PDF của trình duyệt.
+
+<!-- /coderabbit-ai-generated:v1 --> Mục E5 đối chiếu X, W, L và xác suất từ chối với nghiệm giải tích ở 18 cấu hình; mục mạng nối tiếp đối chiếu R, số request tại I/O và xác suất từ chối. Tệp [verification.csv](../SPE-dev-backup/results/phase1_design/verification.csv) và [tandem.csv](../SPE-dev-backup/results/phase1_design/tandem.csv) lưu cả những phép đối chiếu ngoài ngưỡng. E2 kiểm tra định luật Little trên kết nối đang xử lý và kết nối chờ thử lại.
 
 Kiểm thử trong [tests](../SPE-dev-backup/tests) bao gồm thứ tự timestamp, bảo toàn request, khả năng tái lập, hành vi I/O không giữ worker và từ chối khi quá tải. Đây là verification. Validation ở đây dựa trên các xu hướng hiệu năng trong các kịch bản của nhóm: tải tăng, bộ đệm hữu hạn và I/O dài. <!-- coderabbit-ai-generated:v1 -->
 
