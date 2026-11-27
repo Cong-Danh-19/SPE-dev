@@ -117,7 +117,7 @@ def test_every_request_resolves_once_within_cpu_limits(monkeypatch, arch):
 
     monkeypatch.setattr(SinkLP, "handle_event", collect_outcomes)
     monkeypatch.setattr(sim, "_run_in_thread", collect_trace)
-    cfg = SimConfig(gamma=0, arch=arch, c=4, K=8, closed_C=30, n_req=5000)
+    cfg = SimConfig(gamma=0, arch=arch, c=4, K=8, closed_C=500, n_req=5000)
     metrics = run_simulation(cfg)
     assert metrics.Pblock > 0
     assert sorted(resolved) == list(range(1, cfg.n_req + 1))

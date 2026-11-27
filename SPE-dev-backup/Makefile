@@ -32,6 +32,7 @@ design-runs:
 	python -m apps.design_experiments_app --group E6
 
 design-report: design-runs
+	python -m apps.verification_followup_app
 	python -m apps.runtime_validation_app
 	python -m apps.design_report_app
 

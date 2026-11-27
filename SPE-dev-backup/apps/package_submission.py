@@ -1,5 +1,7 @@
 """Package the seven submission folders from the current working tree."""
 import argparse
+import hashlib
+import json
 import re
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -20,14 +22,21 @@ def package(group, output=None):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", group):
         raise ValueError("GROUP must contain only ASCII letters, numbers, '_' or '-'")
     required = [ROOT / 'The Phase 1 submission' / f'Spe-Ass-Spec-{group}.pdf',
-                PROJECT / 'design' / 'design.ipynb']
+                PROJECT / 'design' / 'design.ipynb',
+                ROOT / "Architecture and class diagrams" / "classes.svg",
+                ROOT / "Architecture and class diagrams" / "architecture.svg"]
     required += [ROOT / folder / 'README.md' for folder in FOLDERS[2:]]
-    required.extend(PROJECT / "results" / "phase1_design" / name for name in
-                    ["report.html", "runtime_validation.csv", "verification.csv", "tandem.csv", "slo.csv",
-                     *(f"design_E{i}_{kind}.csv" for i in range(1, 7) for kind in ("raw", "summary"))])
+    results = PROJECT / "results" / "phase1_design"
+    outputs = {"report.html", "runtime_validation.csv", "verification.csv", "tandem.csv",
+               "slo.csv", "e6_factorial.csv", "verification_followup_raw.csv",
+               *(f"design_E{i}_{kind}" for i in range(1, 7) for kind in ("raw.csv", "summary.csv", "manifest.json"))}
+    required.extend(results / name for name in outputs | {"audit-manifest.json"})
     missing = [str(p) for p in required if not p.is_file() or not p.stat().st_size]
     if missing:
         raise FileNotFoundError("Missing required submission files: " + ", ".join(missing))
+    hashes = json.loads((results / "audit-manifest.json").read_text(encoding="utf-8"))
+    if set(hashes) != outputs or any(hashlib.sha256((results / f).read_bytes()).hexdigest() != hashes[f] for f in outputs):
+        raise ValueError("Experiment outputs changed; regenerate and audit the report before packaging")
     name = f'Spe-Ass-final-{group}'
     archive = Path(output).resolve() if output else ROOT / f'{name}.zip'
     files = []

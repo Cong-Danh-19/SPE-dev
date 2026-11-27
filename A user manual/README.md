@@ -18,7 +18,13 @@ Trên Windows, kích hoạt môi trường bằng `.venv\Scripts\Activate.ps1`. 
 
 <!-- coderabbit-ai-generated-section:v1:eb87a39e3f31d88c2ac85594f44b023150dc527d47f7841c1e777594c065657e -->
 
-sau đó chạy lần lượt `python -m apps.runtime_validation_app`, `python -m apps.design_report_app` và `python -m apps.package_submission --group YY9B`.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:176234d6ac2826b690e5061824b5fc9f521f02abce9d2e352914d74efe27783f -->
+
+sau đó chạy `python -m apps.verification_followup_app` (đo lại tất cả các cấu hình E5 còn chỉ số ngoài ngưỡng với 120.000 request/lượt và seed 101–110), `python -m apps.runtime_validation_app`, `python -m apps.design_report_app` và `python -m apps.package_submission --group YY9B`. Để dựng lại báo cáo từ các CSV có sẵn, dùng `make report`.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 <!-- /coderabbit-ai-generated:v1 -->
 

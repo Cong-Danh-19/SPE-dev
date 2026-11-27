@@ -1,4 +1,6 @@
 """Audit the final YY9B seed results and render a self-contained report."""
+import hashlib
+import json
 from itertools import combinations
 from pathlib import Path
 from html import escape
@@ -12,7 +14,7 @@ from scipy import stats
 
 from scenarios.analytical import tandem_analytical
 from apps.design_experiments_app import design_plan, GROUPS
-from apps.benchmark_experiments_app import verification_cases
+from apps.verification_followup_app import compare
 
 RESULTS = Path(__file__).resolve().parents[1] / "results/phase1_design"
 
@@ -95,9 +97,11 @@ def main():
     peak = e1[e1.gamma == 8800].groupby("system")[["X","Pblock","R","p99","U"]].mean()
     out += ['<p>Ở tải 8.800 req/s, trần CPU danh nghĩa là 1.000 req/s cho Event Loop và 8.000 cho hai hệ đa nhân. Bảng đo tại tải này:</p>', peak.to_html(float_format=lambda v:f"{v:.4g}")]
     e2 = data["E2"].assign(XR=lambda f: f.X*f.R, little=lambda f: f.X*f.R + f.X_err*f.t_err)
-    pop = e2.groupby(["scenario","closed_C"])[["Pblock","XR","little"]].mean().reset_index()
+    pop = e2.groupby(["scenario","closed_C"])[["Pblock","XR","little","L_sys"]].mean().reset_index()
     pop["error_pct"] = 100*abs(pop.little/pop.closed_C - 1)
     out += ['<h2 id="E2">E2 · Hệ kín</h2><p>So sánh X·R + X_err·t_err với C. Ở K vô hạn, chỉ 30.000 lượt gửi theo thiết kế; cửa sổ quan sát ngắn so với thời gian chờ tại C lớn có thể làm sai lệch ước lượng.</p>',pop.to_html(index=False)]
+    boundary = pop[pop.scenario.str.endswith("Kinf") & (pop.closed_C == 5000)]
+    out += [f'<p>Với C = 5.000 và K không giới hạn, 3.000 request warm-up nằm trong đợt gửi đồng thời tại t = 0. Cửa sổ vì vậy còn gồm cả giai đoạn khởi động. X·R ở hai hệ lệch {boundary.error_pct.min():.1f}–{boundary.error_pct.max():.1f}% so với C; số request trung bình tính trực tiếp theo thời gian (L_sys) là {boundary.L_sys.mean():,.1f}. R lấy ở các lượt đã hoàn tất nên bỏ sót phần thời gian của các lượt còn dở ở cuối cửa sổ. Không dùng hai ước lượng X·R này để kết luận trạng thái dừng.</p>']
     e2["system_K"] = e2.scenario.str.replace(r"_C[0-9]+", "", regex=True)
     out += [figure(e2, "closed_C", "XR", "system_K", "C", "X·R (request)"),
             figure(e2, "closed_C", "little", "system_K", "C", "X·R + X_err·t_err"),
@@ -123,24 +127,19 @@ def main():
         pb = 0 if pd.isna(r.K_per_core) else mmck(r.gamma, 1/r.s, int(r.c), int(r.K))["Pblock"]
         comparison.append({"scenario":scenario, "lambda":r.gamma, "Pblock_DES":grp.Pblock.mean(), "Pblock_theory":pb})
     out += [pd.DataFrame(comparison).to_html(index=False)]
-    verify = []
-    for model, load, cfg, theory in verification_cases():
-        part = data["E5"][data["E5"].scenario == model+"_"+load]
-        for k,col in (("X","X"),("L","L_io" if model=="M/M/inf" else "L_cpu"),("W","R" if model=="M/M/inf" else "W_cpu"),("Pblock","Pblock")):
-            m,s = part[col].mean(), part[col].sem()
-            lo,hi = m-stats.t.ppf(.975,9)*s,m+stats.t.ppf(.975,9)*s
-            target = theory[k]
-            delta = abs(m-target)/abs(target) if target else abs(m-target)
-            # Table 1 calls for absolute error for rare blocking; use the
-            # historical one-percentage-point tolerance, and report the raw error.
-            close = abs(m-target) < .01 if k=="Pblock" and 0 < target < .01 else (delta < .05 if target else m==0)
-            verify.append(dict(model=model,load=load,metric=k,mean=m,theory=target,low=lo,high=hi,absolute_error=abs(m-target),pass_design=close and lo<=target<=hi))
-    v=pd.DataFrame(verify)
+    v = compare(data["E5"])
     v.to_csv(RESULTS/"verification.csv",index=False)
     failed=v[~v.pass_design]
-    v["within_ci"]=(v.theory >= v.low) & (v.theory <= v.high)
     out += ['<h2 id="E5">E5 · Kiểm chứng trạm đơn</h2>',f'<p>{len(v)-len(failed)}/{len(v)} phép đối chiếu đạt cả ngưỡng sai số và CI95. Khi lý thuyết bằng 0 yêu cầu quan sát bằng 0. Với xác suất chặn hiếm, sai số tương đối nhạy với số sự kiện; CI95 trên mười seed không đảm bảo bao phủ mọi nghiệm. Có {int((~v.within_ci).sum())} trị lý thuyết nằm ngoài CI95. Các metric cùng trạm dùng chung chuỗi request nên các sai lệch có thể đi cùng nhau. Những dòng sau chưa đạt:</p>',failed.to_html(index=False),
             '<p><a href="verification.csv">Toàn bộ 72 phép so sánh và khoảng tin cậy</a>.</p>']
+    follow = pd.read_csv(RESULTS / "verification_followup_raw.csv", float_precision="round_trip")
+    expected = {(r.model + "_" + r.load, seed) for r in failed.itertuples() for seed in range(101, 111)}
+    if len(follow) != len(expected) or set(zip(follow.scenario, follow.seed)) != expected or not (follow.n_req == 120000).all():
+        raise ValueError("Incomplete independent E5 follow-up")
+    if expected:
+        repeat = failed[["model", "load", "metric", "mean"]].merge(compare(follow), on=["model", "load", "metric"], suffixes=("_original","_repeat"))
+        out += ['<h3>Đối chứng độc lập cho các ô E5 chưa đạt</h3>',
+                f'<p>Chạy lại tất cả {len(expected)//10} cấu hình có ít nhất một chỉ số chưa đạt: 120.000 request/lượt, seed 101–110 và warm-up 10%. Bảng chỉ hiển thị những chỉ số chưa đạt trên ma trận gốc. {repeat.pass_design.sum()}/{len(repeat)} đạt ngưỡng trong phép đo bổ sung. Dữ liệu này tách riêng; không thay thế bất kỳ seed chính thức nào. <a href="verification_followup_raw.csv">Dữ liệu từng lượt</a>.</p>', repeat.to_html(index=False)]
     blocking = v[v.metric == "Pblock"]
     loss = blocking[blocking.model.isin(["M/M/1/K", "M/M/c/K"])]
     if not loss.empty:
@@ -198,6 +197,10 @@ def main():
     out += ['<h2 id="validation">Validation · Workload đối chứng</h2><p>Lặp lại minh họa ở §1.4 của design bằng Python asyncio: mỗi tác vụ chờ 0,2 giây. Bảng là trung vị ba lần đo bằng đồng hồ thật. Chờ I/O đồng thời cho phép các khoảng chờ chồng lấp; chặn luồng event loop khiến chúng cộng dồn. So sánh này kiểm tra giả định về chờ I/O ở mức cơ chế.</p>',times.to_html(),'<p><a href="runtime_validation.csv">Dữ liệu đối chứng</a></p>']
     out += ['<h2>Giới hạn validation</h2><p>Đối chiếu nghiệm giải tích kiểm tra việc hiện thực mô hình. Các xu hướng nghẽn CPU, chờ I/O và chia hàng là bằng chứng định tính; chưa đo trực tiếp các runtime thật. Đánh giá chéo của nhóm khác thuộc Phase 3.</p></html>']
     (RESULTS/"report.html").write_text("\n".join(out),encoding="utf-8")
+    files = [f"design_{g}_{suffix}" for g in GROUPS for suffix in ("raw.csv", "summary.csv", "manifest.json")]
+    files += ["report.html", "slo.csv", "tandem.csv", "verification.csv", "runtime_validation.csv", "e6_factorial.csv", "verification_followup_raw.csv"]
+    hashes = {name: hashlib.sha256((RESULTS / name).read_bytes()).hexdigest() for name in files}
+    (RESULTS / "audit-manifest.json").write_text(json.dumps(hashes, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
