@@ -12,17 +12,17 @@ run-exp:
 plot:
 	python -m apps.plotting_app --input-dir results --output-dir results/figures --formats png,pdf
 
-all-pipeline: test run-exp plot
+all-pipeline: test design-report
 
 GROUP ?= YY9B
 pack: export PACK_GROUP := $(value GROUP)
 pack:
-	@python -m apps.package_submission --group "$$PACK_GROUP"
+	@python -m apps.package_submission
 
 clean:
 	@python -c "import pathlib, shutil; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('__pycache__')]; shutil.rmtree('.pytest_cache', ignore_errors=True); [p.unlink() for p in pathlib.Path('.').glob('*.zip')]"
 
-.PHONY: design-report design-runs
+.PHONY: design-report design-runs report
 design-runs:
 	python -m apps.design_experiments_app --group E1
 	python -m apps.design_experiments_app --group E2
@@ -32,4 +32,8 @@ design-runs:
 	python -m apps.design_experiments_app --group E6
 
 design-report: design-runs
+	python -m apps.runtime_validation_app
+	python -m apps.design_report_app
+
+report:
 	python -m apps.design_report_app

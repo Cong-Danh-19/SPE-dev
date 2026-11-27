@@ -62,7 +62,7 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
     cap_rate = cfg.c / eff_s
 
     warm_reqs = int(cfg.n_req * cfg.warm_ratio)
-    if cfg.closed_C == 0 and cfg.K < 10**6 and cfg.gamma >= 0.85 * cap_rate:
+    if cfg.adaptive_warmup and cfg.closed_C == 0 and cfg.K < 10**6 and cfg.gamma >= 0.85 * cap_rate:
         excess = max(cfg.gamma - cap_rate, 0.05 * cap_rate)
         fill_reqs = int(3.0 * cfg.K * cfg.gamma / excess)
         warm_reqs = max(warm_reqs, min(fill_reqs, int(0.5 * cfg.n_req)))
@@ -155,6 +155,7 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
         n_arrived=n_obs,
         T_obs=T_obs,
         conservation_ok=conservation_ok,
+        p99_cpu=float(np.percentile(Wcpu_arr, 99)) if has_done else np.nan,
         n_rejected_cohort=len(cohort_rej),
         n_rejected_cpu=n_rej_cpu,
         n_rejected_io=n_rej_io,

@@ -35,7 +35,7 @@ class LadderQueue(Generic[T]):
        
     Attributes:
         bucket_width: Time range covered by each bucket.
-        num_buckets: Number of buckets in the ladder (circular buffer).
+        num_buckets: Legacy bucket-count argument; absolute indices do not wrap.
         _buckets: A dictionary mapping bucket index to list of events
         _bucket_boundaries: A sorted list of bucket boundaries (timestamps) bucket min timestamps
         _min_bucket_idx: Current minimum bucket index for fast access
@@ -48,7 +48,7 @@ class LadderQueue(Generic[T]):
         
         Args:
             bucket_width: Time range covered by each bucket. Defaults to 1.0.
-            num_buckets: Number of buckets in the ladder (circular buffer). Defaults to 1024.
+            num_buckets: Legacy bucket-count argument; absolute indices do not wrap. Defaults to 1024.
         """
         self.bucket_width = bucket_width
         self.num_buckets = num_buckets

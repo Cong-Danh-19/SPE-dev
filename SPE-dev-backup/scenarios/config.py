@@ -33,6 +33,8 @@ class SimConfig:
     dispatcher_type: str = "sequential" # "sequential" | "distributed_sequential"
     seed: int = 1                       # Hạt giống ngẫu nhiên
 
+    adaptive_warmup: bool = True
+
 
 @dataclass
 class SimMetrics:
@@ -60,3 +62,4 @@ class SimMetrics:
     n_rejected_io: int = 0
     Pblock_cpu: float = 0.0
     Pblock_io: float = 0.0
+    p99_cpu: float = 0.0

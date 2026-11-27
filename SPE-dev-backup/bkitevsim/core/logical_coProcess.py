@@ -99,6 +99,7 @@ class BkSysCoEventLoop:
         self._lp_waiting_for: tp.Dict[int, tp.Any] = {}
         
         # Event waiters: event_type -> list of (lp_id, future)
+        self._event_deadlines = {}  # future -> (virtual deadline, LP)
         self._event_waiters: tp.Dict[str, tp.List[tuple]] = defaultdict(list)
         
         # Time waiters: priority queue of (target_time, lp_id, future)
@@ -199,25 +200,31 @@ class BkSysCoEventLoop:
         Raises:
             TIMEOUT_ERROR: If timeout expires before event arrives.
         """
+        return await self.wait_for_any(lp_id, (event_type,), timeout)
+
+    async def wait_for_any(self, lp_id, event_types, timeout=None):
+        """Resolve one future on the first matching event or its virtual deadline."""
+        types = tuple(dict.fromkeys(event_types))
+        if not types:
+            raise ValueError("at least one event type is required")
         future = self.create_future()
-        self._event_waiters[event_type].append((lp_id, future))
+        for event_type in types:
+            self._event_waiters[event_type].append((lp_id, future))
         self._lp_status[lp_id] = BkSysCoLPStatus.WAITING_EVENT
-        self._lp_waiting_for[lp_id] = event_type
-        
+        self._lp_waiting_for[lp_id] = types
+        if timeout is not None:
+            self._event_deadlines[future] = (self._current_time + max(0.0, timeout), lp_id)
         try:
-            if timeout:
-                event = await asyncio.wait_for(future, timeout=timeout)
-            else:
-                event = await future
+            return await future
+        finally:
+            self._event_deadlines.pop(future, None)
+            for event_type in types:
+                self._event_waiters[event_type] = [
+                    (lid, f) for lid, f in self._event_waiters[event_type] if f is not future
+                ]
+            self._lp_waiting_for.pop(lp_id, None)
             self._lp_status[lp_id] = BkSysCoLPStatus.READY
-            return event
-        except TIMEOUT_ERROR:
-            self._lp_status[lp_id] = BkSysCoLPStatus.READY
-            # Remove from waiters
-            waiters = self._event_waiters[event_type]
-            self._event_waiters[event_type] = [(lid, f) for lid, f in waiters if lid != lp_id]
-            raise EVENT_TIMEOUT_ERROR(f"Timeout waiting for event type '{event_type}'")
-    
+
     async def wait_until_time(self, lp_id: int, target_time: float) -> float:
         """Coroutine wait until virtual time reaches target_time.
         Elaspse time control until the simulation time advances.
@@ -297,6 +304,9 @@ class BkSysCoEventLoop:
             if next_time is None or next_waiter_time < next_time:
                 next_time = next_waiter_time
         
+        for future, (deadline, _) in self._event_deadlines.items():
+            if not future.done() and deadline <= self.end_time and (next_time is None or deadline < next_time):
+                next_time = deadline
         if next_time is None:
             return False
         
@@ -344,11 +354,11 @@ class BkSysCoEventLoop:
                     lp_instance.set_local_virt_time(event.timestamp)
                     
                     # Log synchronization for visualization
-                    logger.debug(f"SYNC: LP {event.receiver_id} LVT {old_lvt:.3f} -> {event.timestamp:.3f} (GVT={self._current_time:.3f})")
+                    logger.debug("SYNC: LP %s LVT %.3f -> %.3f", event.receiver_id, old_lvt, event.timestamp)
                     
                     lp_instance.handle_event(event)
                 except Exception as e:
-                    logger.error(f"Error in handle_event for LP {event.receiver_id}: {e}")
+                    raise RuntimeError(f"Event delivery failed for LP {event.receiver_id}") from e
             
             # After delivering, check if any LPs are waiting for this event type
             waiters = self._event_waiters.get(event.event_type, [])
@@ -366,6 +376,11 @@ class BkSysCoEventLoop:
             count += 1
             self.stats["events_processed"] += 1
         
+        # At equal timestamps, deliver queued messages before expiring waits.
+        for future, (deadline, lp_id) in self._event_deadlines.items():
+            if not future.done() and deadline <= self._current_time:
+                future.set_exception(TIMEOUT_ERROR("Virtual event deadline reached"))
+                self._lp_status[lp_id] = BkSysCoLPStatus.READY
         return count
     
     def run(self, max_iterations: int = None) -> tp.Dict:
@@ -415,8 +430,18 @@ class BkSysCoEventLoop:
                             try:
                                 task.result()
                             except Exception as e:
-                                logger.error(f"LP {lp_id} task failed: {e}")
+                                raise RuntimeError(f"LP {lp_id} task failed") from e
                 
+                # Models with finite initialization coroutines can still receive
+                # events in handle_event. With no coroutine left to wake, drain
+                # the same scheduler directly without asyncio yields per event.
+                if all(status == BkSysCoLPStatus.TERMINATED for status in self._lp_status.values()) and not max_iterations:
+                    while self._running:
+                        self._process_events_at_current_time()
+                        if not self._advance_time_to_next_event():
+                            break
+                    break
+
                 # Process all events at current time
                 processed = self._process_events_at_current_time()
                 if processed > 0:
@@ -445,7 +470,7 @@ class BkSysCoEventLoop:
                 if not time_advanced:
                     alive_lps = [lp_id for lp_id, status in self._lp_status.items()
                              if status != BkSysCoLPStatus.TERMINATED]
-                    if alive_lps:
+                    if not alive_lps:
                         logger.info("All LPs terminated - simulation complete")
                     else:
                         logger.warning(
@@ -623,7 +648,7 @@ class BkSysCoLogicalProcess(BkSysLogicalProcess):
         
         Args:
             event_type: Type of event to wait for.
-            timeout: Optional timeout in wall-clock seconds.
+            timeout: Optional timeout in simulation seconds.
             
         Returns:
             The received event.
@@ -632,10 +657,8 @@ class BkSysCoLogicalProcess(BkSysLogicalProcess):
             TIMEOUT_ERROR: If timeout expires before event arrives.
             RuntimeError: If event loop is not set.
         """
-        if not self._event_loop:
-            raise RuntimeError("Event loop not set")
-        return await self._event_loop.wait_for_event(self.lp_id, event_type, timeout)
-    
+        return await self.wait_for_multiple([event_type], timeout)
+
     async def wait_until(self, target_time: float) -> float:
         """Wait until virtual time reaches target_time.
         
@@ -657,7 +680,7 @@ class BkSysCoLogicalProcess(BkSysLogicalProcess):
         
         Args:
             event_types: List of event types to wait for.
-            timeout: Optional timeout in wall-clock seconds.
+            timeout: Optional timeout in simulation seconds.
             
         Returns:
             The first received event.
@@ -675,60 +698,15 @@ class BkSysCoLogicalProcess(BkSysLogicalProcess):
                 self._pending_events.pop(i)
                 return pending_event
         
-        # Check future 
-        futures = []
-        for et in event_types:
-            future = self._event_loop.create_future()
-            self._event_loop._event_waiters[et].append((self.lp_id, future))
-            futures.append((et, future))
-        
-        self._event_loop._lp_status[self.lp_id] = BkSysCoLPStatus.WAITING_EVENT
-        self._event_loop._lp_waiting_for[self.lp_id] = event_types
-        
-        try:
-            # Extract future objects
-            future_objects = [f for _, f in futures]
-            if timeout:
-                done, pending = await asyncio.wait(future_objects, timeout=timeout, return_when=FIRST_COMPLETED)
-            else:
-                done, pending = await asyncio.wait(future_objects, return_when=FIRST_COMPLETED)
-            
-            # Cancel pending futures
-            for et, future in futures:
-                if future not in done:
-                    future.cancel()
-            
-            # Clean up waiters
-            for et, future in futures:
-                waiters = self._event_loop._event_waiters[et]
-                self._event_loop._event_waiters[et] = [(lid, f) for lid, f in waiters if lid != self.lp_id]
-            
-            self._event_loop._lp_status[self.lp_id] = BkSysCoLPStatus.READY
-            
-            # Return the completed event
-            # Buffer any additional completed events
-            completed_events = []
-            for future in done:
-                if not future.cancelled():
-                    completed_events.append(future.result())
-            
-            if completed_events:
-                # Return the first event
-                event = completed_events[0]
-                # Buffer the rest
-                for buffered_event in completed_events[1:]:
-                    self._pending_events.append(buffered_event)
-                return event
-            
-            raise RuntimeError("No future completed")
-            
-        except TIMEOUT_ERROR:
-            self._event_loop._lp_status[self.lp_id] = BkSysCoLPStatus.READY
-            for et, future in futures:
-                waiters = self._event_loop._event_waiters[et]
-                self._event_loop._event_waiters[et] = [(lid, f) for lid, f in waiters if lid != self.lp_id]
-            raise
-    
+        event = await self._event_loop.wait_for_any(self.lp_id, event_types, timeout)
+        # The default handler also enqueues deliveries; consume this instance
+        # exactly once, keeping any simultaneous or unrelated arrivals buffered.
+        for i, pending_event in enumerate(self._pending_events):
+            if pending_event is event:
+                self._pending_events.pop(i)
+                break
+        return event
+
     # Abstract method implementations
     def initialize(self) -> None:
         """Initialize is handled by coroutine_run."""

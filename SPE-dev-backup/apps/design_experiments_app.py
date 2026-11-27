@@ -1,6 +1,8 @@
 """Run the Phase 1 design matrix; keep every seed and resume interrupted runs."""
 import argparse
 import csv
+import gc
+from concurrent.futures import ProcessPoolExecutor
 import hashlib
 import importlib.metadata
 import json
@@ -18,7 +20,7 @@ from scenarios.analytical import summarize_replications
 from scenarios.config import SimConfig
 
 GROUPS = ("E1", "E2", "E3", "E4", "E5", "E6")
-METRICS = ("Pblock", "Pblock_cpu", "Pblock_io", "X", "X_err", "R", "Wq", "W_cpu", "p95", "p99", "L_cpu", "L_io", "L_sys", "U")
+METRICS = ("Pblock", "Pblock_cpu", "Pblock_io", "X", "X_err", "R", "Wq", "W_cpu", "p95", "p99", "p99_cpu", "L_cpu", "L_io", "L_sys", "U")
 
 
 def design_plan():
@@ -28,6 +30,7 @@ def design_plan():
                ("Bun", "partitioned", 8, 1.0))
 
     def add(group, label, cfg, rho=None, kpc=None):
+        cfg.adaptive_warmup = False
         plan.append(dict(group=group, scenario=label, cfg=cfg, rho_ref=rho, K_per_core=kpc))
 
     for name, arch, c, kappa in systems:
@@ -76,7 +79,18 @@ def _write_csv(path, rows):
     os.replace(temp, path)
 
 
-def run_group(group, out_dir, replications):
+def _run_seed(task):
+    plan, seed = task
+    cfg = SimConfig(**{**asdict(plan["cfg"]), "seed": seed})
+    m = run_simulation(cfg)
+    gc.collect()  # LPs and dispatcher refer to each other; release traces between seeds.
+    if not m.conservation_ok:
+        raise RuntimeError(f"Request conservation failed: {plan['scenario']}/{seed}")
+    return {"exp_id": plan["group"], "scenario": plan["scenario"], "rho_ref": plan["rho_ref"],
+            "K_per_core": plan["K_per_core"], **asdict(cfg), **asdict(m), "X_err": m.n_rejected / m.T_obs}
+
+
+def run_group(group, out_dir, replications, jobs=1):
     plans = [p for p in design_plan() if p["group"] == group]
     tasks = [(p, seed) for p in plans for seed in range(1, replications + 1)]
     random.Random(2026).shuffle(tasks)
@@ -104,20 +118,14 @@ def run_group(group, out_dir, replications):
     completed = {(r["scenario"], int(r["seed"])) for r in rows}
     if len(completed) != len(rows):
         raise ValueError("Duplicate checkpoint rows")
-    for plan, seed in tasks:
-        key = (plan["scenario"], seed)
-        if key in completed:
-            continue
-        cfg = SimConfig(**{**asdict(plan["cfg"]), "seed": seed})
-        m = run_simulation(cfg)
-        if not m.conservation_ok:
-            raise RuntimeError(f"Request conservation failed: {key}")
-        row = {"exp_id": group, "scenario": plan["scenario"], "rho_ref": plan["rho_ref"],
-               "K_per_core": plan["K_per_core"], **asdict(cfg), **asdict(m),
-               "X_err": m.n_rejected / m.T_obs}
-        rows.append(row)
-        _write_csv(raw_path, rows)
-        print(f"{group}: {len(rows)}/{len(tasks)} {key}", flush=True)
+    todo = [(plan, seed) for plan, seed in tasks if (plan["scenario"], seed) not in completed]
+    from contextlib import nullcontext
+    with ProcessPoolExecutor(max_workers=jobs) if jobs > 1 else nullcontext() as pool:
+        results = pool.map(_run_seed, todo) if pool else map(_run_seed, todo)
+        for row in results:
+            rows.append(row)
+            _write_csv(raw_path, rows)
+            print(f"{group}: {len(rows)}/{len(tasks)}", flush=True)
     if completed - {(p["scenario"], seed) for p, seed in tasks}:
         raise ValueError("Unexpected checkpoint rows")
     frame = pd.DataFrame(rows)
@@ -144,10 +152,13 @@ def main():
     parser.add_argument("--group", choices=GROUPS, required=True)
     parser.add_argument("--out-dir", type=Path, default=Path("results/phase1_design"))
     parser.add_argument("--replications", type=int, default=10)
+    parser.add_argument("--jobs", type=int, default=1)
     args = parser.parse_args()
     if args.replications < 2:
         parser.error("at least two replications are required")
-    run_group(args.group, args.out_dir, args.replications)
+    if args.jobs < 1:
+        parser.error("--jobs must be positive")
+    run_group(args.group, args.out_dir, args.replications, args.jobs)
 
 
 if __name__ == "__main__":

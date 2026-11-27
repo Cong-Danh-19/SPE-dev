@@ -25,7 +25,19 @@ Trong mã nguồn, mỗi hàng con của `PartitionedDispatcherLP` (Bun) có s�
 
 ![Sơ đồ lớp UML của các logical process và các lớp nền BkitEvsim](classes.svg)
 
-Hàm `run_simulation(SimConfig)` khởi tạo các LP nghiệp vụ kế thừa từ `BaseSimLP` → `BkSysCoLogicalProcess` → `BkSysLogicalProcess`. Hai lớp `SharedDispatcherLP` và `PartitionedDispatcherLP` quyết định **worker nghiệp vụ nào nhận request**, trong khi ở tầng lõi `bkitevsim`, `Simulation` kích hoạt `BkSysCoEventLoop` để lập lịch **sự kiện mô phỏng kế tiếp** theo dấu thời gian cho mọi LP dạng coroutine (do đó hai giá trị cấu hình `sequential` và `distributed_sequential` đều đi qua cùng vòng lặp sự kiện coroutine và cho kết quả tương đương). Với hàng đợi sự kiện `LadderQueue` của thư viện môn học (sử dụng mảng vòng 1.024 bucket), `simulator_app.py` chủ động đặt độ rộng mỗi bucket là `bucket_width = max(t_end / 900, 10⁻³)`, đảm bảo toàn bộ khoảng thời gian mô phỏng `t_end` luôn nằm gọn trong tối đa `900 < 1.024` bucket nên không xảy ra hiện tượng quay vòng modulo làm đảo thứ tự thời gian sự kiện trong bất kỳ lượt chạy thực nghiệm nào. [Các lớp LP nghiệp vụ](../SPE-dev-backup/scenarios/async_runtime_lps.py) · [Bộ điều phối mô phỏng](../SPE-dev-backup/apps/simulator_app.py) · [Lõi Simulation](../SPE-dev-backup/bkitevsim/core/simulation.py)
+Hàm `run_simulation(SimConfig)` khởi tạo các LP nghiệp vụ kế thừa từ `BaseSimLP` → `BkSysCoLogicalProcess` → `BkSysLogicalProcess`. Hai lớp `SharedDispatcherLP` và `PartitionedDispatcherLP` quyết định **worker nghiệp vụ nào nhận request**, trong khi ở tầng lõi `bkitevsim`, `Simulation` kích hoạt `BkSysCoEventLoop` để lập lịch **sự kiện mô phỏng kế tiếp** theo dấu thời gian cho mọi LP dạng coroutine (do đó hai giá trị cấu hình `sequential` và `distributed_sequential` đều đi qua cùng vòng lặp sự kiện coroutine và cho kết quả tương đương). <!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:abfa5ebd5f45c6fbb68cb0290e283233ac5de42f21c9b3d930f5351655863d34 -->
+
+LadderQueue nhóm sự kiện theo chỉ số bucket tuyệt đối và lấy bucket nhỏ nhất trước. Trong cùng bucket, thứ tự là timestamp rồi đến thứ tự chèn; vì vậy hai sự kiện cách nhau hơn 1.024 bucket vẫn được xử lý đúng thời gian.
+
+<!-- /coderabbit-ai-generated:v1 --> [Các lớp LP nghiệp vụ](../SPE-dev-backup/scenarios/async_runtime_lps.py) · [Bộ điều phối mô phỏng](../SPE-dev-backup/apps/simulator_app.py) · [Lõi Simulation](../SPE-dev-backup/bkitevsim/core/simulation.py)
 
 
-[Bảy câu hỏi nghiên cứu và kết quả định lượng](../SPE-dev-backup/docs/architecture.md) · [Kiểm chứng và đánh giá](../Validation%20and%20evaluation/README.md)
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:e04a1e8cac18d79f686d634478351faff43d48495df29d99f72d2613eb2a077d -->
+
+[Kết quả định lượng E1–E6](../SPE-dev-backup/results/phase1_design/report.html)
+
+<!-- /coderabbit-ai-generated:v1 --> · [Kiểm chứng và đánh giá](../Validation%20and%20evaluation/README.md)
