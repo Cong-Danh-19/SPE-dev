@@ -1,3 +1,4 @@
+import asyncio
 import concurrent.futures
 from typing import Dict, List
 import numpy as np
@@ -21,6 +22,10 @@ MODELS = {
 
 
 def _run_in_thread(sim: Simulation) -> dict:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return sim.run()
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
         return ex.submit(sim.run).result()
 
@@ -39,6 +44,20 @@ def _time_average(trace: list, col: int, t_warm: float, t_stop: float) -> float:
 
 def run_simulation(cfg: SimConfig) -> SimMetrics:
     """Chạy một lượt mô phỏng DES hoàn chỉnh và trả về các metric sau warm-up."""
+    if cfg.arch not in ("shared", "partitioned") or cfg.routing not in ("random", "rr"):
+        raise ValueError("Invalid architecture or routing")
+    if cfg.c < 1 or cfg.K < 1 or (cfg.arch == "partitioned" and cfg.K < cfg.c) or cfg.s <= 0 or cfg.kappa <= 0 or cfg.D < 0:
+        raise ValueError("Invalid capacity or service time")
+    if cfg.n_req < 2 or not 0 <= cfg.warm_ratio < 1 or cfg.closed_C < 0:
+        raise ValueError("Invalid request count, warm-up or closed population")
+    if cfg.closed_C == 0 and cfg.gamma <= 0:
+        raise ValueError("Open-loop arrival rate must be positive")
+    if cfg.t_err < 0 or cfg.think_time < 0 or (cfg.backend_limit is not None and cfg.backend_limit < 1):
+        raise ValueError("Invalid retry, think time or backend capacity")
+    if cfg.dist_cpu not in ("exp", "det") or cfg.dist_io not in ("exp", "det"):
+        raise ValueError("Invalid service distribution")
+    if not 0 <= cfg.heavy_prob <= 1 or cfg.heavy_mult <= 0:
+        raise ValueError("Invalid heavy-task parameters")
     eff_s = cfg.s * (cfg.kappa if cfg.arch == "partitioned" else 1.0)
     cap_rate = cfg.c / eff_s
 
@@ -49,7 +68,8 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
         warm_reqs = max(warm_reqs, min(fill_reqs, int(0.5 * cfg.n_req)))
 
     if cfg.closed_C > 0:
-        t_end = 3.5 * cfg.n_req * max((eff_s + cfg.D) / cfg.closed_C, eff_s / cfg.c) + 50.0 * (eff_s + cfg.D)
+        cycle_t = eff_s + cfg.D + max(cfg.think_time, cfg.t_err)
+        t_end = 3.5 * cfg.n_req * max(cycle_t / cfg.closed_C, eff_s / cfg.c) + 50.0 * cycle_t
     else:
         t_end = 3.5 * (cfg.n_req / cfg.gamma) + 50.0 * (eff_s + cfg.D)
 
@@ -82,17 +102,25 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
     sink = sim.get_lp(SINK_ID)
     io = sim.get_lp(IO_ID) if cfg.D > 0 else None
 
+    if src.sent != cfg.n_req or len(sink.records) + len(sink.rejected) != src.sent:
+        raise RuntimeError("Simulation ended before all requests were generated and resolved")
+
     t_warm = src.t_warm
     t_stop = src.t_last
     T_obs = t_stop - t_warm
 
     # Lọc các request hoàn thành theo thời điểm rời hệ thống (t_arr + R) nằm trong [t_warm, t_stop]
     obs_done = [r for r in sink.records if t_warm <= (r[0] + r[1]) <= t_stop]
-    obs_rej = [ta for ta in sink.rejected if t_warm <= ta <= t_stop]
+    # Cohort membership uses request IDs, so ties at the warm-up timestamp
+    # cannot cause the numerator and denominator to count different arrivals.
+    cohort_rej = [r for r in sink.rejected if r[0] > warm_reqs]
+    obs_rej = [r for r in sink.rejected if t_warm <= r[2] <= t_stop]
 
     n_done = len(obs_done)
     n_rej = len(obs_rej)
-    n_obs = n_done + n_rej
+    n_obs = src.sent - warm_reqs
+    n_rej_cpu = sum(r[3] == "cpu" for r in cohort_rej)
+    n_rej_io = sum(r[3] == "io" for r in cohort_rej)
     has_done = n_done > 0
 
     R_arr = np.array([r[1] for r in obs_done]) if has_done else np.array([])
@@ -109,7 +137,7 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
     conservation_ok = (total_accounted == src.sent)
 
     return SimMetrics(
-        Pblock=(n_rej / n_obs) if n_obs > 0 else np.nan,
+        Pblock=(len(cohort_rej) / n_obs) if n_obs > 0 else np.nan,
         X=(n_done / T_obs) if T_obs > 0 else np.nan,
         R=float(R_arr.mean()) if has_done else np.nan,
         Wq=float(Wq_arr.mean()) if has_done else np.nan,
@@ -127,6 +155,11 @@ def run_simulation(cfg: SimConfig) -> SimMetrics:
         n_arrived=n_obs,
         T_obs=T_obs,
         conservation_ok=conservation_ok,
+        n_rejected_cohort=len(cohort_rej),
+        n_rejected_cpu=n_rej_cpu,
+        n_rejected_io=n_rej_io,
+        Pblock_cpu=n_rej_cpu / n_obs,
+        Pblock_io=n_rej_io / n_obs,
     )
 
 

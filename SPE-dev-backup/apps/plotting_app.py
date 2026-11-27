@@ -126,7 +126,7 @@ def aggregate_seeds(frame):
 
 def _validate_table_columns(raw):
     text_columns = {
-        "exp_id", "scenario", "arch", "dist_cpu", "dist_io", "routing",
+        "exp_id", "scenario", "arch", "dist_cpu", "dist_io", "routing", "dispatcher_type",
         "system", "Model", "Load_Level", "Pass_5pct", "load", "exp",
     }
     for col in raw.columns.difference(text_columns):

@@ -7,7 +7,7 @@ from scenarios.config import SimConfig, SimMetrics
 from apps.simulator_app import run_simulation, run_replications
 from scenarios import analytical as ana
 
-METRICS = ["Pblock", "X", "X_err", "R", "Wq", "W_cpu", "p95", "p99", "L_cpu", "L_io", "L_sys", "U"]
+METRICS = ["Pblock", "Pblock_cpu", "Pblock_io", "X", "X_err", "R", "Wq", "W_cpu", "p95", "p99", "L_cpu", "L_io", "L_sys", "U"]
 
 
 def evaluate_config(
@@ -42,6 +42,8 @@ def evaluate_config(
                 "heavy_prob": cfg.heavy_prob,
                 "seed": cfg_i.seed,
                 "Pblock": m.Pblock,
+                "Pblock_cpu": m.Pblock_cpu,
+                "Pblock_io": m.Pblock_io,
                 "X": m.X,
                 "X_err": x_err_i,
                 "R": m.R,
@@ -55,6 +57,8 @@ def evaluate_config(
                 "U": m.U,
                 "n_done": m.n_done,
                 "n_rejected": m.n_rejected,
+                "n_rejected_cohort": m.n_rejected_cohort,
+                "n_arrived": m.n_arrived,
                 "T_obs": m.T_obs,
             })
 
@@ -96,7 +100,7 @@ def evaluate_config(
     return row
 
 
-def export_verification_table(out_dir: str, n_seeds: int = 15):
+def verification_cases():
     cases = [
         # M/M/1 (mu = 100): 3 mức tải rho = 0.4, 0.7, 0.85
         ("M/M/1", "low",  SimConfig(gamma=40,  c=1, K=10**9, s=0.01, D=0.0, n_req=40_000), ana.mm1(40, 100)),
@@ -123,6 +127,11 @@ def export_verification_table(out_dir: str, n_seeds: int = 15):
         ("M/M/c/K", "mid",  SimConfig(gamma=750, c=8, K=24, s=0.01, D=0.0, n_req=40_000), ana.mmck(750, 100, 8, 24)),
         ("M/M/c/K", "high", SimConfig(gamma=850, c=8, K=24, s=0.01, D=0.0, n_req=40_000), ana.mmck(850, 100, 8, 24)),
     ]
+    return cases
+
+
+def export_verification_table(out_dir: str, n_seeds: int = 15):
+    cases = verification_cases()
     rows = []
     for name, load_lvl, cfg, th in cases:
         res = run_replications(cfg, n_seeds=n_seeds)
@@ -139,6 +148,11 @@ def export_verification_table(out_dir: str, n_seeds: int = 15):
         err_L = abs(sim_L - ana_L) / ana_L * 100.0
         abs_err_Pb = abs(sim_Pb - ana_Pb)
         pb_ok = (abs_err_Pb < 0.01) or (ana_Pb > 0 and abs_err_Pb / ana_Pb < 0.05)
+        ci_ok = all(
+            res[key]["ci_low"] <= expected <= res[key]["ci_high"]
+            for key, expected in (("X", ana_X), (w_key, ana_W), (l_key, ana_L), ("Pblock", ana_Pb))
+        )
+        error_ok = (err_X < 5.0) and (err_W < 5.0) and (err_L < 5.0) and pb_ok
 
         rows.append({
             "Model": name,
@@ -167,7 +181,8 @@ def export_verification_table(out_dir: str, n_seeds: int = 15):
             "Pblock_ci_high": round(res["Pblock"]["ci_high"], 5),
             "Ana_Pblock": round(ana_Pb, 5),
             "AbsErr_Pblock": round(abs_err_Pb, 5),
-            "Pass_5pct": bool((err_X < 5.0) and (err_W < 5.0) and (err_L < 5.0) and pb_ok),
+            "Pass_5pct": bool(error_ok),
+            "Pass_strict_CI95": bool(error_ok and ci_ok),
         })
     df = pd.DataFrame(rows)
     df.to_csv(os.path.join(out_dir, "verification_summary.csv"), index=False)

@@ -1,4 +1,12 @@
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:3da6f78b9645f65c57b794e255da9c17cee4e7e8558e8694efd49b64045dc2e4 -->
+
 # Hướng dẫn cài đặt, thực thi và đóng gói
+
+Ma trận Phase 1 có thể chạy từng nhóm từ thư mục mã nguồn bằng `python -m apps.design_experiments_app --group E1` (E2, E3, E4 hoặc E6). Mỗi nhóm mặc định dùng 10 seed, ghi vào `results/phase1_design/` và tiếp tục từ checkpoint khi chạy lại cùng môi trường. Dữ liệu cũ cần chạy lại trước khi sử dụng làm kết quả cuối.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Từ thư mục gốc `Spe-Ass-final-YY9B`, chuyển vào thư mục mã nguồn để chạy các lệnh ở mục 1–4.
 
@@ -102,18 +110,20 @@ Bộ dữ liệu chuẩn sinh đầy đủ **13 biểu đồ khoa học** (26 t�
 | Lỗi `ModuleNotFoundError: No module named 'apps'` | Đang đứng sai thư mục làm việc. Chuyển (`cd`) về thư mục `SPE-dev-backup` chứa `Makefile` và `apps/`. |
 | Thiếu tệp hình hoặc cột khi thử CSV tùy chỉnh | Mở `results/figures/analysis_summary.md`, đọc mục *"Phạm vi dữ liệu và ghi chú xử lý"* ở đầu tệp để biết chính xác tệp hoặc cột nào đang thiếu. |
 
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:e41aac5f7cfadd09bc73830c1e2d75c74206b8f3255bf6a2a3c1f1ba333d18d0 -->
+
 ## 5. Đóng gói bản nộp
 
-Thư mục `The Phase 1 submission` ở gốc repo chứa tài liệu Phase 1 của nhóm. Trước khi đóng gói, kiểm tra tài liệu Phase 1 và các thay đổi cần nộp đã có trong commit sẽ dùng. Lệnh dưới đây đóng gói cả bảy thư mục của repo từ commit đó. Target `make pack` trong Makefile của mã nguồn chỉ đóng gói nội dung bên trong `SPE-dev-backup`.
-
-Từ `SPE-dev-backup`, quay lại gốc repo bằng `cd ..`, rồi chạy:
+Từ `SPE-dev-backup`, chạy `make pack GROUP=YY9B`. Lệnh tạo `Spe-Ass-final-YY9B.zip` ở gốc repo, bao gồm bảy thư mục, notebook và PDF Phase 1; mã đóng gói kiểm tra tính toàn vẹn ZIP và các tài liệu bắt buộc. Kiểm tra rằng dữ liệu và báo cáo đã được chạy lại, kiểm chứng theo thiết kế trước khi nộp.
 
 ```sh
-git archive --format=zip --prefix=Spe-Ass-final-YY9B/ --output=Spe-Ass-final-YY9B.zip HEAD
-python -m zipfile -t Spe-Ass-final-YY9B.zip
-python -m zipfile -l Spe-Ass-final-YY9B.zip
+make pack GROUP=YY9B
+python -m zipfile -t ../Spe-Ass-final-YY9B.zip
+python -m zipfile -l ../Spe-Ass-final-YY9B.zip
 ```
 
-Tệp ZIP mới nằm trong thư mục gốc của repo. Khi kiểm tra danh sách, mở mục `Spe-Ass-final-YY9B/The Phase 1 submission/` và xác nhận có tài liệu chính thức bên cạnh năm mục tài liệu Phase 2 và thư mục mã nguồn.
 
+<!-- /coderabbit-ai-generated:v1 -->
 Mã nguồn được sử dụng trong phạm vi học phần CO3007. [Điều khoản sử dụng](../SPE-dev-backup/LICENSE)

@@ -75,7 +75,7 @@ class SharedDispatcherLP(BaseSimLP):
         t = e.timestamp
         if e.event_type == "REQ":
             if self.n >= self.K:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "reject_source": "cpu"})
             else:
                 self.n += 1
                 if self.idle:
@@ -128,7 +128,7 @@ class PartitionedDispatcherLP(BaseSimLP):
             else:
                 w = self.rng.randrange(self.c)
             if self.counts[w] >= self.k_per_worker:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "reject_source": "cpu"})
             else:
                 self.counts[w] += 1
                 if not self.busy[w]:
@@ -195,7 +195,7 @@ class IoLP(BaseSimLP):
         t = e.timestamp
         if e.event_type == "IO_REQ":
             if self.backend_limit is not None and self.n >= self.backend_limit:
-                self._send(t, SINK_ID, "REJECT", e.payload)
+                self._send(t, SINK_ID, "REJECT", {**e.payload, "reject_source": "io"})
                 return
             self.n += 1
             self.trace.append((t, self.n))
@@ -228,6 +228,6 @@ class SinkLP(BaseSimLP):
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.think_time)
         elif e.event_type == "REJECT":
-            self.rejected.append(p["t_arr"])
+            self.rejected.append((p["rid"], p["t_arr"], t, p["reject_source"]))
             if self.closed:
                 self._send(t, SRC_ID, "NEXT", {}, at=t + self.t_err)

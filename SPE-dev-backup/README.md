@@ -1,4 +1,12 @@
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:6bc70d9ff864deb412b05d5dc8155703588d2822080d369fd19e136db274de7e -->
+
 # hk261_spe_BKsyspeEvsim — Đánh giá hiệu năng các cơ chế bất đồng bộ
+
+Các CSV và biểu đồ có sẵn được tạo bởi phiên bản trước khi sửa cách đếm từ chối. Chúng là số liệu lịch sử; hãy chạy lại và kiểm chứng trước khi dùng làm kết quả cho mã hiện tại. Notebook Phase 1 nằm trong `design/design.ipynb`.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Dự án môn **Đánh giá Hiệu năng Hệ thống (CO3007)** xây dựng bộ mô phỏng sự kiện rời rạc (DES) trên framework `bkitevsim` để phân tích định lượng ba kiến trúc xử lý bất đồng bộ: **Event Loop** đơn luồng (`M/M/1/K`), **Bun Multi-Kernel Thread** hàng đợi riêng (`N × M/M/1/K`) và **Spring Loom Virtual Thread** hàng đợi chung (`M/M/c/K`) nối tiếp trạm chờ I/O không chặn (`M/M/∞` hoặc giới hạn kết nối `M/M/c/c`).
 

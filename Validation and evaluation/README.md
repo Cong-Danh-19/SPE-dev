@@ -1,4 +1,12 @@
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:020d807d69ef3a161249c8c90ff05d80c4ec42f0b933f327f1e924163821ea6e -->
+
 # Kiểm chứng và đánh giá hiệu năng
+
+Các kết quả kiểm chứng bên dưới thuộc phiên bản trước khi sửa phép đo và chưa xác nhận phiên bản mới. Cần chạy lại bộ kiểm chứng và đối chiếu cả sai số lẫn CI95 theo Phase 1.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Bộ kiểm chứng đối chiếu sáu mô hình trạm đơn với nghiệm giải tích ở ba mức tải. Mỗi cấu hình dùng 15 hạt giống. Cả 18 cấu hình đạt tiêu chí về sai số của thông lượng, thời gian trung bình tại trạm, số yêu cầu tại trạm và xác suất từ chối. Trong E1–E3, 86 cấu hình phân biệt đều có sai lệch dưới 3% khi đối chiếu các hệ thức Little tại CPU, I/O và toàn hệ thống, cùng mức bận của CPU. [Bảng kiểm chứng 18 cấu hình](../SPE-dev-backup/results/figures/fig8_verification.md) · [Đối chiếu theo từng chỉ số](../SPE-dev-backup/results/figures/analysis_summary.md)
 

@@ -69,7 +69,8 @@ class LadderQueue(Generic[T]):
         Returns:
             The bucket index for the given timestamp.
         """
-        return int(timestamp / self.bucket_width) % self.num_buckets
+        # Absolute indices preserve time order across arbitrarily many buckets.
+        return int(timestamp / self.bucket_width)
     
     def _get_bucket_min_time(self, bucket_idx: int) -> float:
         """Get the minimum timestamp for a bucket index.

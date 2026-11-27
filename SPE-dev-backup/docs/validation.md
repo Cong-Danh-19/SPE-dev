@@ -1,4 +1,12 @@
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:118a1223fad14ea5ddbd377fd858c3101160aa1523ba675898955a9f41d480ea -->
+
 # Ghi chú kiểm chứng và đánh giá kết quả Phase 2
+
+Các kết quả bên dưới thuộc phiên bản trước khi sửa phép đo. Cần chạy lại kiểm chứng để đánh giá phiên bản hiện tại.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Các số liệu dưới đây làm rõ cách đọc mục 4 của tài liệu kiến trúc và các bảng tổng hợp của TV3. [Kiến trúc và bảy câu hỏi nghiên cứu](architecture.md) · [Bảng phân tích thực nghiệm](../results/figures/analysis_summary.md)
 

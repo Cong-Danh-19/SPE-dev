@@ -27,8 +27,20 @@ Với trạm I/O không chặn vô hạn chỗ, trần thông lượng thành c�
 
 | Cột chỉ số | Đơn vị | Định nghĩa đo lường trên cửa sổ `[t_warm, t_stop]` |
 |---|---|---|
-| `X`, `X_err` | request/giây | Số request hoàn thành (`t_warm ≤ t_arr + R ≤ t_stop`) và số request bị từ chối (`t_warm ≤ t_arr ≤ t_stop`) chia cho độ dài cửa sổ quan sát `T_obs = t_stop − t_warm`. |
-| `Pblock`, `U` | Tỉ phần `[0, 1]` | `Pblock = n_rej / (n_done + n_rej)` là xác suất bị từ chối quan sát được; `U` là mức sử dụng trung bình theo thời gian của trạm CPU đã chuẩn hóa theo số worker `c`. Khi vẽ biểu đồ và trình bày bảng, hai đại lượng này được nhân `100` để đổi sang `%`. |
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:61d72ac29d0a87e95126b6de906a816160e180c3ccda1a1d6aae2f43f1075481 -->
+
+| `X`, `X_err` | request/giây | Số request hoàn thành và số request bị từ chối theo thời điểm xảy ra trong `[t_warm, t_stop]`, chia cho độ dài cửa sổ `T_obs`. |
+
+<!-- /coderabbit-ai-generated:v1 -->
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:5ea42240ab0e81e3bffe84d0a5aeaa769d9c08b24685c0a9cd9d731c937116b5 -->
+
+| `Pblock`, `U` | Tỉ phần `[0, 1]` | `Pblock` là số request bị từ chối trong nhóm request sinh sau warm-up chia cho tổng số request trong cùng nhóm; `Pblock_cpu` và `Pblock_io` cho biết nơi từ chối. `U` là mức sử dụng trung bình theo thời gian của trạm CPU, chuẩn hóa theo `c`. |
+
+<!-- /coderabbit-ai-generated:v1 -->
 | `R`, `W_cpu`, `Wq` | giây | Trung bình trên các request hoàn thành trong cửa sổ đo: `R` là tổng thời gian phản hồi từ lúc đến tới lúc rời hệ thống; `W_cpu` là thời gian lưu lại trạm CPU (chờ + phục vụ); `Wq` là thời gian xếp hàng chờ worker rảnh. Nhân `1.000` để đổi sang `ms`. |
 | `p95`, `p99` | giây | Phân vị thứ 95 và 99 của `R` tính trong từng lượt chạy; cột `p95_mean`, `p99_mean` là trung bình của phân vị đó qua `m` hạt giống. |
 | `L_cpu`, `L_io`, `L_sys` | request | Số lượng request trung bình theo thời gian (tích phân đường bậc thang chia cho `T_obs`) tại trạm CPU, tại trạm I/O và trên toàn hệ thống (`L_sys = L_cpu + L_io`). |

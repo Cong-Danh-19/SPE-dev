@@ -1,4 +1,12 @@
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:e3edbd8679d77f0fc865f51db01c6a30a2fe455d32c945c902e5fca9abf46ec1 -->
+
 # Kiến trúc và đánh giá hiệu năng mô hình bất đồng bộ
+
+Các kết quả định lượng bên dưới thuộc phiên bản trước khi sửa phép đo, không phải kết quả đã kiểm chứng của phiên bản hiện tại.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Một request đi vào trạm CPU, chờ đến lượt nếu các worker đang bận, sử dụng CPU đúng một lần rồi chuyển sang trạm chờ I/O. Worker nhả ngay sau khi hoàn tất phần CPU và nhận việc kế tiếp dù các request trước vẫn đang chờ I/O. Cách tổ chức hàng đợi giữa các worker và chi phí điều phối luồng quyết định hàng nào đầy trước, thời gian chờ tại CPU và trần thông lượng của hệ thống.
 
@@ -27,7 +35,13 @@ Trong mã nguồn, mỗi hàng con của `PartitionedDispatcherLP` (Bun) có s�
 
 ![Sơ đồ lớp UML của các logical process và các lớp nền BkitEvsim](diagrams/classes.svg)
 
-Hàm `run_simulation(SimConfig)` khởi tạo các LP nghiệp vụ kế thừa từ `BaseSimLP` → `BkSysCoLogicalProcess` → `BkSysLogicalProcess`. Hai lớp `SharedDispatcherLP` và `PartitionedDispatcherLP` quyết định **worker nghiệp vụ nào nhận request**, trong khi ở tầng lõi `bkitevsim`, `Simulation` kích hoạt `BkSysCoEventLoop` để lập lịch **sự kiện mô phỏng kế tiếp** theo dấu thời gian cho mọi LP dạng coroutine (do đó hai giá trị cấu hình `sequential` và `distributed_sequential` đều đi qua cùng vòng lặp sự kiện coroutine và cho kết quả tương đương). Với hàng đợi sự kiện `LadderQueue` của thư viện môn học (sử dụng mảng vòng 1.024 bucket), `simulator_app.py` chủ động đặt độ rộng mỗi bucket là `bucket_width = max(t_end / 900, 10⁻³)`, đảm bảo toàn bộ khoảng thời gian mô phỏng `t_end` luôn nằm gọn trong tối đa `900 < 1.024` bucket nên không xảy ra hiện tượng quay vòng modulo làm đảo thứ tự thời gian sự kiện trong bất kỳ lượt chạy thực nghiệm nào. [Các lớp LP nghiệp vụ](../scenarios/async_runtime_lps.py) · [Bộ điều phối mô phỏng](../apps/simulator_app.py) · [Lõi Simulation](../bkitevsim/core/simulation.py)
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:13f65820057cebff91428e3381618fa3301cfece68ffa51abf69b1b6fdb97dd9 -->
+
+Hàm `run_simulation(SimConfig)` dựng các LP trên `BkSysCoEventLoop`. `LadderQueue` dùng chỉ số bucket tuyệt đối để bảo toàn thứ tự sự kiện qua nhiều chu kỳ bucket; độ rộng bucket do bộ mô phỏng cấu hình. Hai giá trị dispatcher cho LP coroutine đều đi qua cùng vòng lặp sự kiện. [Bộ mô phỏng](../apps/simulator_app.py) · [Hàng đợi](../bkitevsim/queues/ladder_queue.py)
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ## 3. Ánh xạ thiết kế thực nghiệm (§8) và bộ dữ liệu Phase 2
 

@@ -1,4 +1,12 @@
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:91f4d864bc45161bf4c5a4281aaed4622a3d477fd98553b696d0cd668dba212f -->
+
 # Thí nghiệm và dữ liệu bàn giao
+
+Các số liệu trong mục dưới là kết quả lịch sử từ phiên bản trước khi sửa phép đo. Ma trận Phase 1 mới chạy bằng `python -m apps.design_experiments_app --group E1` (tương tự E2, E3, E4, E6); dữ liệu cũ không xác nhận kết quả của phiên bản mới.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 Thư mục `results/` chứa **7 tệp CSV chuẩn** do `apps/benchmark_experiments_app.py` sinh tự động: 5 tệp thực nghiệm (`e1`–`e5`) gồm **124 dòng cấu hình** (tương ứng **120 cấu hình tham số độc lập**), tệp `raw_seed_runs.csv` lưu toàn bộ **1.240 lượt chạy từng seed** (`10` seed/cấu hình), và bảng kiểm chứng `verification_summary.csv` gồm **18 cấu hình trạm đơn** (`6` mô hình × `3` mức tải × `15` seed). Lưu ý thứ tự đánh số tệp `e2`/`e4`/`e5` của runner khác với ký hiệu mục trong notebook §8; bảng dưới đây ánh xạ chính xác từng tệp sang thiết kế và đầu ra biểu đồ của TV3. [Runner xuất dữ liệu](../SPE-dev-backup/apps/benchmark_experiments_app.py)
 
